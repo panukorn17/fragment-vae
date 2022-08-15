@@ -11,3 +11,4 @@ TOKENS = [SOS_TOKEN, PAD_TOKEN, EOS_TOKEN]
 
 class Vocab:
     def __init__(self, data):
+        data
