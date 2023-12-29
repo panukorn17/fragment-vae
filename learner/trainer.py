@@ -124,9 +124,9 @@ class Trainer:
         self.pred_sas_loss = []
         self.beta_list = []
         self.mutual_information = []
-        self.best_loss = np.float('inf')
+        self.best_loss = float('inf')
         self.scores = []
-        self.best_score = - np.float('inf')
+        self.best_score = - float('inf')
 
     def _train_epoch(self, epoch, loader, penalty_weights, beta):
         ###Teddy Code
