@@ -63,7 +63,7 @@ def set_random_seed(seed=None):
 
 
 def get_run_info(name):
-    start_time = datetime.now().strftime('%Y-%m-%d@%X')
+    start_time = datetime.now().strftime('%Y-%m-%d@%H-%M-%S')
     host_name = socket.gethostname()
     run_name = f'{start_time}-{host_name}-{name}'
     return run_name, host_name, start_time

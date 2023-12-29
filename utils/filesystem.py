@@ -1,7 +1,7 @@
 import json
 import pandas as pd
 import pickle as pkl
-import sh
+import subprocess
 
 
 def load_pickle(path):
@@ -26,15 +26,18 @@ def commit(experiment_name, time):
     the experiment for reproducibility.
     """
     try:
-        sh.git.commit('-a',
-                      m=f'"auto commit tracked '
-                        f'files for new experiment: '
-                        f'{experiment_name} on {time}"',
-                      allow_empty=True
-                      )
-        commit_hash = sh.git('rev-parse', 'HEAD').strip()
+        # Construct the commit message
+        commit_message = f"auto commit tracked files for new experiment: {experiment_name} on {time}"
+
+        # Run the git commit command
+        subprocess.run(['git', 'commit', '-a', '-m', commit_message, '--allow-empty'], check=True)
+
+        # Get the current commit hash
+        commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode().strip()
+
         return commit_hash
-    except Exception:
+    except Exception as e:
+        print(f"Error: {e}")
         return '<Unable to commit>'
 
 
