@@ -1,4 +1,4 @@
-## Code for FRAGMOL "A Deep FRAGment-Based Generative Model for De Novo MOlecular Design"
+## Code for FRAGMOD "A Deep FRAGment-Based Generative Model for De Novo MOlecular Design"
 ### Report
 Link to [Research paper and findings](https://drive.google.com/file/d/1iilahcVytCHjJU3EMK2Gi9Ytd-LH7rBs/view?usp=sharing)
 
