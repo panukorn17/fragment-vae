@@ -77,15 +77,20 @@ def check_reconstruction(frag_1, frag_2, smi):
     print("Reconstructing...")
     recomb = replace_last(frag_2, "*", frag_1.replace("*","",1))
     #print(recomb)
-    recomb_canon = Chem.CanonSmiles(MolToSmiles(MolFromSmiles(recomb), rootedAtAtom=0))
-    #print(recomb_canon)
-    if recomb_canon == smi:
-        print("True Smiles:", smi, "Fragment 1:" , frag_1, "Fragment 2: ", frag_2, "Reconstruction: ", recomb_canon)
-        print("Reconstruction successful")
-        return True
-    else:
-        print("True Smiles:", smi, "Fragment 1:" , frag_1, "Fragment 2: ", frag_2, "Reconstruction: ", recomb_canon)
-        print("Reconstruction failed")
+    try:
+        recomb_canon = Chem.CanonSmiles(MolToSmiles(MolFromSmiles(recomb), rootedAtAtom=0))
+        #print(recomb_canon)
+        if recomb_canon == smi:
+            print("Reconstruction successful")
+            print("True Smiles:", smi, "Fragment 1:" , frag_1, "Fragment 2: ", frag_2, "Reconstruction: ", recomb_canon)
+            return True
+        else:
+            #print("Reconstruction failed")
+            #print("True Smiles:", smi, "Fragment 1:" , frag_1, "Fragment 2: ", frag_2, "Reconstruction: ", recomb_canon)
+            return False
+    except:
+        #print("Reconstruction failed")
+        #print("True Smiles:", smi, "Fragment 1:" , frag_1, "Fragment 2: ", frag_2, "Reconstruction: ", recomb_canon)
         return False
 
 def fragment_recursive(mol, frags):
@@ -112,20 +117,24 @@ def fragment_recursive(mol, frags):
                                         bondIndices=[bond],
                                         dummyLabels=[(0, 0)])
             head, tail = Chem.GetMolFrags(broken, asMols=True)
-            head_smi = Chem.CanonSmiles(MolToSmiles(head, rootedAtAtom=0))
-            tail_smi = Chem.CanonSmiles(MolToSmiles(tail, rootedAtAtom=0))
-            if not list(BRICS.FindBRICSBonds(head)) and check_reconstruction(head_smi,tail_smi,Chem.CanonSmiles(MolToSmiles(mol))):
-                frags.append(head)
-                print("Bond: ", bond, "Terminal: ", head_smi, "Recurse: ", tail_smi)
-                fragComplete = fragment_recursive(tail, frags)  
-                if fragComplete:
-                    return frags
-            elif not list(BRICS.FindBRICSBonds(tail)) and check_reconstruction(tail_smi,head_smi,Chem.CanonSmiles(MolToSmiles(mol))):
-                frags.append(tail)
-                print("Bond: ", bond,  "Terminal: ", Chem.CanonSmiles(MolToSmiles(tail, rootedAtAtom=0)), "Recurse: ", Chem.CanonSmiles(MolToSmiles(head, rootedAtAtom=0)))
-                fragComplete = fragment_recursive(head, frags)  
-                if fragComplete:
-                    return frags
+            if not list(BRICS.FindBRICSBonds(head)):
+                head_smi = Chem.CanonSmiles(MolToSmiles(head, rootedAtAtom=0))
+                tail_smi = MolToSmiles(tail, rootedAtAtom=0)
+                if check_reconstruction(head_smi,tail_smi,Chem.CanonSmiles(MolToSmiles(mol))):
+                    frags.append(head)
+                    print("Bond: ", bond, "Terminal: ", head_smi, "Recurse: ", tail_smi)
+                    fragComplete = fragment_recursive(tail, frags)  
+                    if fragComplete:
+                        return frags
+            elif not list(BRICS.FindBRICSBonds(tail)):
+                tail_smi = Chem.CanonSmiles(MolToSmiles(tail, rootedAtAtom=0))
+                head_smi = MolToSmiles(head, rootedAtAtom=0)
+                if check_reconstruction(tail_smi,head_smi,Chem.CanonSmiles(MolToSmiles(mol))):
+                    frags.append(tail)
+                    print("Bond: ", bond,  "Terminal: ", tail_smi, "Recurse: ", head_smi)
+                    fragComplete = fragment_recursive(head, frags)  
+                    if fragComplete:
+                        return frags
         
     except Exception:
         pass
