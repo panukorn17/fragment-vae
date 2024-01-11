@@ -86,15 +86,17 @@ def fragment_recursive(mol, frags):
                                         bondIndices=[bond],
                                         dummyLabels=[(0, 0)])
             head, tail = Chem.GetMolFrags(broken, asMols=True)
+            head_smi = MolToSmiles(head)
+            tail_smi = MolToSmiles(tail)
             if not list(BRICS.FindBRICSBonds(head)):
                 frags.append(head)
-                print(MolToSmiles(head), MolToSmiles(tail))
+                print("Terminal:", head_smi, "Recurse:", tail_smi)
                 fragComplete = fragment_recursive(tail, frags)  
                 if fragComplete:
                     return frags
             elif not list(BRICS.FindBRICSBonds(tail)):
                 frags.append(tail)
-                print(MolToSmiles(head), MolToSmiles(tail))
+                print("Terminal:", tail_smi, "Recurse:", head_smi)
                 fragComplete = fragment_recursive(head, frags)  
                 if fragComplete:
                     return frags
