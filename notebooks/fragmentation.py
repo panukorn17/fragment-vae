@@ -152,7 +152,7 @@ def fragment_recursive(mol_smi, frags):
     except Exception:
         pass
 
-smiles = 'c1(*)cccc(-c2ccccc2)c1'
+smiles = MolToSmiles(MolFromSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O'), rootedAtAtom=0)
 print(smiles)
 frag = []
 fragment_recursive(smiles, frag)
