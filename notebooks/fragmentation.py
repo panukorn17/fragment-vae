@@ -93,9 +93,10 @@ def check_reconstruction(frag_1, frag_2, smi):
         #print("True Smiles:", smi, "Fragment 1:" , frag_1, "Fragment 2: ", frag_2, "Reconstruction: ", recomb_canon)
         return False
 
-def fragment_recursive(mol, frags):
+def fragment_recursive(mol_smi, frags):
     fragComplete = False
     try:
+        mol = MolFromSmiles(mol_smi)
         bonds = list(BRICS.FindBRICSBonds(mol))
         if bonds == []:
             frags.append(mol)
@@ -118,30 +119,30 @@ def fragment_recursive(mol, frags):
                                         dummyLabels=[(0, 0)])
             head, tail = Chem.GetMolFrags(broken, asMols=True)
             if not list(BRICS.FindBRICSBonds(head)):
-                head_smi = Chem.CanonSmiles(MolToSmiles(head, rootedAtAtom=0))
+                head_smi = Chem.CanonSmiles(MolToSmiles(head))
                 tail_smi = MolToSmiles(tail, rootedAtAtom=0)
-                if check_reconstruction(head_smi,tail_smi,Chem.CanonSmiles(MolToSmiles(mol))):
-                    frags.append(head)
+                if check_reconstruction(head_smi,tail_smi,mol_smi):
+                    frags.append(head_smi)
                     print("Bond: ", bond, "Terminal: ", head_smi, "Recurse: ", tail_smi)
-                    fragComplete = fragment_recursive(tail, frags)  
+                    fragComplete = fragment_recursive(tail_smi, frags)  
                     if fragComplete:
                         return frags
             elif not list(BRICS.FindBRICSBonds(tail)):
-                tail_smi = Chem.CanonSmiles(MolToSmiles(tail, rootedAtAtom=0))
+                tail_smi = Chem.CanonSmiles(MolToSmiles(tail))
                 head_smi = MolToSmiles(head, rootedAtAtom=0)
-                if check_reconstruction(tail_smi,head_smi,Chem.CanonSmiles(MolToSmiles(mol))):
-                    frags.append(tail)
+                if check_reconstruction(tail_smi,head_smi,mol_smi):
+                    frags.append(tail_smi)
                     print("Bond: ", bond,  "Terminal: ", tail_smi, "Recurse: ", head_smi)
-                    fragComplete = fragment_recursive(head, frags)  
+                    fragComplete = fragment_recursive(head_smi, frags)  
                     if fragComplete:
                         return frags
+                    
         
     except Exception:
         pass
 
 smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
 print(smiles)
-mol = MolFromSmiles(smiles)
 frag = []
-fragment_recursive(mol, frag)
-print([Chem.CanonSmiles(MolToSmiles(fragment, rootedAtAtom=0)) for fragment in frag])
+fragment_recursive(smiles, frag)
+print(frag)
