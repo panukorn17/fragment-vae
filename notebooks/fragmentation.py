@@ -128,8 +128,8 @@ def fragment_recursive(mol_smi, frags):
                     fragComplete = fragment_recursive(tail_smi, frags)  
                     if fragComplete:
                         return frags
-                elif len(bon_idxs) == 1:
-                    frags.append(head_smi)
+                elif len(bond_idxs) == 1:
+                    frags.append(mol_smi)
                     print("Final Fragment: ", head_smi)
                     fragComplete = True
                     return frag
@@ -142,8 +142,8 @@ def fragment_recursive(mol_smi, frags):
                     fragComplete = fragment_recursive(head_smi, frags)  
                     if fragComplete:
                         return frags
-                elif len(bon_idxs) == 1:
-                    frags.append(tail_smi)
+                elif len(bond_idxs) == 1:
+                    frags.append(mol_smi)
                     print("Final Fragment: ", tail_smi)
                     fragComplete = True
                     return frags
