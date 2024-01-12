@@ -128,6 +128,11 @@ def fragment_recursive(mol_smi, frags):
                     fragComplete = fragment_recursive(tail_smi, frags)  
                     if fragComplete:
                         return frags
+                elif len(bon_idxs) == 1:
+                    frags.append(head_smi)
+                    print("Final Fragment: ", head_smi)
+                    fragComplete = True
+                    return frag
             elif not list(BRICS.FindBRICSBonds(tail)):
                 tail_smi = Chem.CanonSmiles(MolToSmiles(tail))
                 head_smi = MolToSmiles(head, rootedAtAtom=0)
@@ -137,12 +142,17 @@ def fragment_recursive(mol_smi, frags):
                     fragComplete = fragment_recursive(head_smi, frags)  
                     if fragComplete:
                         return frags
+                elif len(bon_idxs) == 1:
+                    frags.append(tail_smi)
+                    print("Final Fragment: ", tail_smi)
+                    fragComplete = True
+                    return frags
                     
         
     except Exception:
         pass
 
-smiles = 'N(*)(CCc1cccc(*)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O'
+smiles = 'c1(*)cccc(-c2ccccc2)c1'
 print(smiles)
 frag = []
 fragment_recursive(smiles, frag)
