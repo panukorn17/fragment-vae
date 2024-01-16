@@ -101,7 +101,8 @@ def fragment_recursive(mol_smi, frags):
         mol = MolFromSmiles(mol_smi)
         bonds = list(BRICS.FindBRICSBonds(mol))
         if bonds == []:
-            frags.append(mol)
+            frags.append(MolToSmiles(MolFromSmiles(Chem.CanonSmiles(mol_smi)), rootedAtAtom=1))
+            print("Final Fragment: ", mol_smi)
             fragComplete = True
             return fragComplete
 
@@ -134,6 +135,11 @@ def fragment_recursive(mol_smi, frags):
                     print("Final Fragment: ", mol_smi)
                     fragComplete = True
                     return frag
+                elif bond == bond_idxs[-1]:
+                    frags.append(MolToSmiles(MolFromSmiles(Chem.CanonSmiles(mol_smi)), rootedAtAtom=1))
+                    print("Final Fragment: ", mol_smi)
+                    fragComplete = True
+                    return frags
             elif not list(BRICS.FindBRICSBonds(tail)):
                 tail_smi = Chem.CanonSmiles(MolToSmiles(tail))
                 head_smi = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(head))), rootedAtAtom=1)
@@ -148,13 +154,19 @@ def fragment_recursive(mol_smi, frags):
                     print("Final Fragment: ", mol_smi)
                     fragComplete = True
                     return frags
+                elif bond == bond_idxs[-1]:
+                    frags.append(MolToSmiles(MolFromSmiles(Chem.CanonSmiles(mol_smi)), rootedAtAtom=1))
+                    print("Final Fragment: ", mol_smi)
+                    fragComplete = True
+                    return frags
                     
         
     except Exception:
         pass
 
 #smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
-smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
+#smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
+smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
 print(smiles)
 frag = []
 fragment_recursive(smiles, frag)
