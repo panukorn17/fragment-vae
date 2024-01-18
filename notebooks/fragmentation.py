@@ -155,14 +155,14 @@ def fragment_recursive(mol_smi, frags, counter):
                         return frags
                 elif len(bond_idxs) == 1:
                     mol_smi_canon = Chem.CanonSmiles(mol_smi)
-                    mol_smi_root = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(mol_smi_root))), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
+                    mol_smi_root = MolToSmiles(MolFromSmiles(mol_smi_canon), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
                     frags.append(mol_smi_root)
                     print("Final Fragment: ", mol_smi_root)
                     fragComplete = True
                     return frag
                 elif bond == bond_idxs[-1]:
                     mol_smi_canon = Chem.CanonSmiles(mol_smi)
-                    mol_smi_root = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(mol_smi_root))), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
+                    mol_smi_root = MolToSmiles(MolFromSmiles(mol_smi_canon), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
                     frags.append(mol_smi_root)
                     print("Final Fragment: ", mol_smi_root)
                     fragComplete = True
@@ -183,14 +183,14 @@ def fragment_recursive(mol_smi, frags, counter):
                         return frags
                 elif len(bond_idxs) == 1:
                     mol_smi_canon = Chem.CanonSmiles(mol_smi)
-                    mol_smi_root = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(mol_smi_canon))), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
+                    mol_smi_root = MolToSmiles(MolFromSmiles(mol_smi_canon), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
                     frags.append(mol_smi_root)
                     print("Final Fragment: ", mol_smi_root)
                     fragComplete = True
                     return frag
                 elif bond == bond_idxs[-1]:
                     mol_smi_canon = Chem.CanonSmiles(mol_smi)
-                    mol_smi_root = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(mol_smi_canon))), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
+                    mol_smi_root = MolToSmiles(MolFromSmiles(mol_smi_canon), rootedAtAtom=count_and_sum_letters_asterisks(mol_smi_canon))
                     frags.append(mol_smi_root)
                     print("Final Fragment: ", mol_smi_root)
                     fragComplete = True
@@ -201,9 +201,9 @@ def fragment_recursive(mol_smi, frags, counter):
         pass
 
 #smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
-smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
+#smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
 #smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
-#smiles = Chem.CanonSmiles('CC(C)C(NC(=O)C1CCCN1C(=O)OCc1ccccc1)C(=O)NC(CC(=O)O)C(=O)COc1cc(C(F)(F)F)nn1-c1ccccc1')
+smiles = Chem.CanonSmiles('CNC(C)C(=O)NC(C(=O)N1CCCC1c1nc(-c2cccc3ccccc23)c(C#CCOC)s1)C1CCOCC1')
 
 print(smiles)
 frag = []
