@@ -128,9 +128,13 @@ def fragment_recursive(mol_smi, frags, counter):
             #print(fragComplete)
             broken = Chem.FragmentOnBonds(mol,
                                         bondIndices=[bond],
-                                        dummyLabels=[(int("1"+str(counter)), int("2"+str(counter)))])
+                                        dummyLabels=[(0, 0)])
             head, tail = Chem.GetMolFrags(broken, asMols=True)
             if not list(BRICS.FindBRICSBonds(head)):
+                broken = Chem.FragmentOnBonds(mol,
+                                            bondIndices=[bond],
+                                            dummyLabels=[(counter, 0)])
+                head, tail = Chem.GetMolFrags(broken, asMols=True)
                 head_smi = Chem.CanonSmiles(MolToSmiles(head))
                 tail_smi = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(tail))), rootedAtAtom=1)
                 if check_reconstruction(head_smi,tail_smi,mol_smi):
@@ -150,6 +154,10 @@ def fragment_recursive(mol_smi, frags, counter):
                     fragComplete = True
                     return frags
             elif not list(BRICS.FindBRICSBonds(tail)):
+                broken = Chem.FragmentOnBonds(mol,
+                                            bondIndices=[bond],
+                                            dummyLabels=[(0, counter)])
+                head, tail = Chem.GetMolFrags(broken, asMols=True)
                 tail_smi = Chem.CanonSmiles(MolToSmiles(tail))
                 head_smi = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(MolToSmiles(head))), rootedAtAtom=1)
                 if check_reconstruction(tail_smi,head_smi,mol_smi):
@@ -174,8 +182,10 @@ def fragment_recursive(mol_smi, frags, counter):
         pass
 
 #smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
-smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
-#smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
+#smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
+smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
+#smiles = Chem.CanonSmiles('CCCCCCOC(=O)N1CCN(C(=O)C(CCC(=O)O)NC(=O)c2cc(N3CCC(N)CC3)cc(-c3ccccc3)n2)CC1')
+
 print(smiles)
 frag = []
 fragment_recursive(smiles, frag, 0)
