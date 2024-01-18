@@ -76,8 +76,8 @@ def replace_last(s, old, new):
 def check_reconstruction(frag_1, frag_2, smi):
     print("Reconstructing...")
     smi_canon = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(smi)),rootedAtAtom = 1)
-    recomb = replace_last(frag_2, "*", frag_1.replace("*", "",1))
-    #recomb = frag_2.replace("*", frag_1.replace("*","",1),1)
+    #recomb = replace_last(frag_2, "*", frag_1.replace("*", "",1))
+    recomb = frag_2.replace("*", frag_1.replace("*","",1),1)
     #print(recomb)
     try:
         recomb_canon = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(recomb)),rootedAtAtom = 1)
@@ -164,9 +164,9 @@ def fragment_recursive(mol_smi, frags):
     except Exception:
         pass
 
-#smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
+smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
 #smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
-smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
+#smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
 print(smiles)
 frag = []
 fragment_recursive(smiles, frag)
