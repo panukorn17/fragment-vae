@@ -1,0 +1,21 @@
+FUNCTION fragment_recursive(mol_smi_orig, mol_smi, frags, counter, bric_bond_limit)
+    SET fragComplete TO False
+
+    TRY
+        INCREMENT counter BY 1
+        CREATE mol FROM mol_smi
+        LIST BRICS bonds in mol and STORE in bonds
+        
+       \\ check whether we've increased the bric bond limit beyond the number of bric bonds in a molecule
+        IF len(bonds) <= bric_bond_limit
+            APPEND CanonSmiles of mol to frags
+            PRINT "Final Fragment:", mol_smi, "
+            SET fragComplete TO True
+            RETURN fragComplete
+        
+        \\ sort bric bonds
+        UNZIP bonds INTO idxs AND labs
+
+        INITIALIZE bond_idxs AS EMPTY LIST
+        FOR EACH pair a1, a2 IN idxs
+            GET bond BETWEEN a1 AND a2 IN mol AND APPEN…
