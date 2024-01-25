@@ -110,7 +110,7 @@ def fragment_recursive(mol_smi_orig, mol_smi, frags, counter, frag_list_len):
         pass
 
 #smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
-#smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O')
+smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O') # fragment demonstration in the thesis
 #smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
 #smiles = Chem.CanonSmiles('CCOC(=O)CCCSc1nc(O)c2c(C)c(C)sc2n1')
 #smiles = Chem.CanonSmiles('Cc1nc(Oc2ccc(NS(C)(=O)=O)cc2Cl)ccc1CN1CCC(N(C(=O)Nc2ccc(C(N)=O)nc2)c2cccc(F)c2)CC1')
@@ -119,7 +119,10 @@ def fragment_recursive(mol_smi_orig, mol_smi, frags, counter, frag_list_len):
 #smiles = Chem.CanonSmiles('CCCCCCCCCCCCCCCCCCN(CCCCCCCCCCCCCCCCCC)C(=O)c1ccccc1C(=O)OCC1OC(OC)C(OCCN)C(OCCN)C1OCCN')
 #smiles = Chem.CanonSmiles('CC(C)CN(C(CO)CCCCNC(=O)C(NC(=O)c1ccc([N+](=O)[O-])c(O)c1)C(c1ccccc1)c1ccccc1)S(=O)(=O)c1ccc(N)cc1')
 #smiles = Chem.CanonSmiles('Cc1ccccc1NC(=O)NCCCCC(NC(=O)C(Cc1c[nH]c2ccccc12)NC(=O)OC(C)(C)C)C(=O)N(C)CC(=O)NC(Cc1ccccc1)C(N)=O')
-smiles = Chem.CanonSmiles('CCNCCCCNCCCCNCCCCNCCCCNCC=C(CS)CNCCCCNCCCCNCCCCNCCCCNCC')
+#smiles = Chem.CanonSmiles('CCNCCCCNCCCCNCCCCNCCCCNCC=C(CS)CNCCCCNCCCCNCCCCNCCCCNCC')
+#smiles = Chem.CanonSmiles('CCC(NC(=O)C(CC1CCCCC1)NC(=O)C(NC(=O)C(CC(C)C)NC(=O)c1cnccn1)C(C)CC)C(=O)C(=O)NCC(N)=O') # wrong intermediatary molecules
+#smiles = Chem.CanonSmiles('CCOC(=O)c1c(NC(=O)NS(=O)(=O)c2ccnn2C)sc2c1CCC(C)(C)C2') # not sure if same molecule or can it rotate?
+#smiles = Chem.CanonSmiles('CN1Cc2c(Cl)cc(Cl)cc2C(c2cccc(S(=O)(=O)NCCOCCOCCOCCOCCOCCOCCOCCOCCOCCOCCN=[N+]=[N-])c2)C1') # 23 fragments
 
 print(smiles)
 frag = []
