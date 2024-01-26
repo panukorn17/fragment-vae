@@ -113,6 +113,7 @@ FIGURES
 *.log
 *.out
 *.pt
+azure_config.txt
 
 # exclude everything
 DATA/*
