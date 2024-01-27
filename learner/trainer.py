@@ -72,10 +72,12 @@ def get_scheduler(config, optimizer):
                   gamma=config.get('sched_gamma'))
 
 
-def dump(config, losses, CE_loss, KL_loss, pred_sas_loss, pred_logP_loss, beta_list, scores):
+def dump(config, losses, CE_loss, KL_loss, pred_qed_loss, beta_list, scores):
     #def dump(config, losses, CE_loss, KL_loss, pred_logP_loss, beta_list, scores):
-    df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, pred_sas_loss, pred_logP_loss, beta_list)),
-                      columns=["Total loss", "CE loss", "KL loss", "pred sas loss", "pred logP loss", "beta"])
+    #df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, pred_sas_loss, pred_logP_loss, beta_list)),
+    #                  columns=["Total loss", "CE loss", "KL loss", "pred sas loss", "pred logP loss", "beta"])
+    df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, pred_qed_loss, beta_list)),
+                      columns=["Total loss", "CE loss", "KL loss", "pred qed loss", "beta"])
     #df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, pred_logP_loss, beta_list)),
     #                  columns=["Total loss", "CE loss", "KL loss", "pred logP loss", "beta"])
     filename = config.path('performance') / "loss.csv"
@@ -122,6 +124,7 @@ class Trainer:
         self.KL_loss = []
         self.pred_logP_loss = []
         self.pred_sas_loss = []
+        self.pred_qed_loss = []
         self.beta_list = []
         self.mutual_information = []
         self.best_loss = float('inf')
@@ -138,6 +141,7 @@ class Trainer:
         epoch_KL_loss = 0
         epoch_pred_sas_loss = 0
         epoch_pred_logP_loss = 0
+        epoch_pred_qed_loss = 0
 
         if epoch > 0 and self.config.get('use_scheduler'):
             self.scheduler.step()
@@ -162,7 +166,8 @@ class Trainer:
                 src = src.cuda()
                 tgt = tgt.cuda()
 
-            output, mu, sigma, z, pred_logp, pred_sas = self.model(src, lengths)
+            #output, mu, sigma, z, pred_logp, pred_sas = self.model(src, lengths)
+            output, mu, sigma, z, pred_qed = self.model(src, lengths)
             #output, mu, sigma, z, pred_logp = self.model(src, lengths)
             #mutual_info = self.model.calc_mi(src, lengths)
             #total_mutual_info += mutual_info * src.size(0)
@@ -176,11 +181,12 @@ class Trainer:
             molecules_correct = dataset.data.iloc[data_index_correct]
             #print("molecules: ", molecules_correct)
             #rint("target string list", tgt_str_lst)
-            #labels_qed = torch.tensor(molecules_correct.qed.values)
-            labels_logp = torch.tensor(molecules_correct.logP.values)
-            labels_sas = torch.tensor(molecules_correct.SAS.values)
+            labels_qed = torch.tensor(molecules_correct.qed.values)
+            #labels_logp = torch.tensor(molecules_correct.logP.values)
+            #labels_sas = torch.tensor(molecules_correct.SAS.values)
             #print("labels: ", labels)
-            loss, CE_loss, KL_loss, pred_sas_loss, pred_logp_loss = self.criterion(output, tgt, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, tgt_str_lst, penalty_weights, beta)
+            #loss, CE_loss, KL_loss, pred_sas_loss, pred_logp_loss = self.criterion(output, tgt, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, tgt_str_lst, penalty_weights, beta)
+            loss, CE_loss, KL_loss, pred_qed_loss = self.criterion(output, tgt, mu, sigma, pred_qed, labels_qed, epoch, tgt_str_lst, penalty_weights, beta)
             #loss, CE_loss, KL_loss, pred_logp_loss = self.criterion(output, tgt, mu, sigma, pred_logp, labels_logp, labels_sas, epoch, tgt_str_lst, penalty_weights, beta)
             #pred_loss.backward()
             loss.backward()
@@ -190,8 +196,9 @@ class Trainer:
             epoch_loss += loss.item()
             epoch_CE_loss += CE_loss.item()
             epoch_KL_loss += KL_loss.item()
-            epoch_pred_sas_loss += pred_sas_loss.item()
-            epoch_pred_logP_loss += pred_logp_loss.item()
+            epoch_pred_qed_loss += pred_qed_loss.item()
+            #epoch_pred_sas_loss += pred_sas_loss.item()
+            #epoch_pred_logP_loss += pred_logp_loss.item()
             #epoch_loss += pred_loss.item()
 
             self.optimizer.step()
@@ -201,14 +208,16 @@ class Trainer:
                 print("index:", data_index)
                 print("index correct: ", data_index_correct)
                 print("batch ", idx, " loss: ", epoch_loss/(idx+1))
-                #print("pred qed", pred_qed, " labels qed: ", labels_qed, "loss qed:", F.binary_cross_entropy(pred_qed.type(torch.float64), labels_qed.cuda()))
-                print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", F.mse_loss(pred_logp.type(torch.float64), labels_logp.cuda()))
-                print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", F.mse_loss(pred_sas.type(torch.float64), labels_sas.cuda()))
+                print("pred qed", pred_qed, " labels qed: ", labels_qed, "loss qed:", F.binary_cross_entropy(pred_qed.type(torch.float64), labels_qed.cuda()))
+                #print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", F.mse_loss(pred_logp.type(torch.float64), labels_logp.cuda()))
+                #print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", F.mse_loss(pred_sas.type(torch.float64), labels_sas.cuda()))
                 #print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss)
-                print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss + pred_sas_loss)
+                #print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss + pred_sas_loss)
+                print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_qed_loss)
             ###
         #return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logP_loss / len(loader)
-        return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_sas_loss / len(loader), epoch_pred_logP_loss / len(loader)
+        #return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_sas_loss / len(loader), epoch_pred_logP_loss / len(loader)
+        return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_qed_loss / len(loader)
 
     def _valid_epoch(self, epoch, loader):
         use_gpu = self.config.get('use_gpu')
