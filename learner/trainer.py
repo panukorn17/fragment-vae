@@ -195,7 +195,7 @@ class Trainer:
 
             self.optimizer.step()
             ### Teddy Code
-            if idx == 0 or idx % 200 == 0:
+            if idx == 0 or idx % 1000 == 0:
                 print("Epoch: ", epoch, "beta: ", beta[epoch])
                 print("index:", data_index)
                 print("index correct: ", data_index_correct)
@@ -252,7 +252,7 @@ class Trainer:
         fragment_counts = pd.Series(fragment_list).value_counts()
         fragment_counts = fragment_counts.append(pd.Series(len(dataset.data)))
         penalty = np.sum(np.log(fragment_counts + 1)) / np.log(fragment_counts + 1)
-        penalty_weights = penalty / np.linalg.norm(penalty) * 1000
+        penalty_weights = penalty / np.linalg.norm(penalty) * 5000
         ###
         total_mutual_info_list = []
         #KL weights anneal
