@@ -204,7 +204,8 @@ class Trainer:
                 print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", F.mse_loss(pred_logp.type(torch.float64), labels_logp.cuda()))
                 print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", F.mse_loss(pred_sas.type(torch.float64), labels_sas.cuda()))
                 #print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss)
-                print("penalty weights: ", penalty_weights[tgt_str])
+                print("target string list src", tgt_str_lst)
+                print("Penalty Weights", [[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
                 print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss + pred_sas_loss)
             ###
         #return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logP_loss / len(loader)
