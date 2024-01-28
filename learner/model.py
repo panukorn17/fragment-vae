@@ -92,29 +92,29 @@ class MLP(nn.Module):
         self.layers_qed = nn.Sequential(
             nn.Linear(latent_size, 32),
             nn.ReLU(),
-            #nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.Linear(32, 1),
             nn.ReLU(),
-            #nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.Sigmoid()
         )
         self.layers_logp = nn.Sequential(
             nn.Linear(latent_size, 200),
             nn.ReLU(),
-            #nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.Linear(200, 100),
             nn.ReLU(),
-            #nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.Linear(100, 1)
             #nn.Sigmoid()
         )
         self.layers_sas = nn.Sequential(
             nn.Linear(latent_size, 200),
             nn.ReLU(),
-            #nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.Linear(200, 100),
             nn.ReLU(),
-            #nn.Dropout(0.2),
+            nn.Dropout(0.2),
             nn.Linear(100, 1)
             #nn.ReLU(),
             #nn.Dropout(0.2),
