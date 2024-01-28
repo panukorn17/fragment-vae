@@ -150,7 +150,6 @@ class Trainer:
             #tgt_str_lst = list(tgt_str)
             #print(tgt_str_lst)
             #print([[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
-            #print(penalty_weights[tgt_str])
             tgt_str_lst = [self.vocab.translate(target_i) for target_i in tgt.cpu().detach().numpy()]
             target_str_ls_2 = [" ".join(self.vocab.translate(target_i)) for target_i in tgt.cpu().detach().numpy()]
             src_str_ls_2 = [self.vocab.translate(target_i) for target_i in src.cpu().detach().numpy()]
@@ -205,6 +204,7 @@ class Trainer:
                 print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", F.mse_loss(pred_logp.type(torch.float64), labels_logp.cuda()))
                 print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", F.mse_loss(pred_sas.type(torch.float64), labels_sas.cuda()))
                 #print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss)
+                print("penalty weights: ", penalty_weights[tgt_str])
                 print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss + pred_sas_loss)
             ###
         #return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logP_loss / len(loader)
@@ -251,7 +251,7 @@ class Trainer:
         fragment_counts = pd.Series(fragment_list).value_counts()
         fragment_counts = fragment_counts.append(pd.Series(len(dataset.data)))
         penalty = np.sum(np.log(fragment_counts + 1)) / np.log(fragment_counts + 1)
-        penalty_weights = penalty / np.linalg.norm(penalty)
+        penalty_weights = penalty / np.linalg.norm(penalty) * 1000
         ###
         total_mutual_info_list = []
         #KL weights anneal

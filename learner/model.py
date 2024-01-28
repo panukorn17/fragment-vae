@@ -89,15 +89,15 @@ class MLP(nn.Module):
         #self.linear2 = nn.Linear(16, 8)
         #self.linear3 = nn.Linear(8, 1)
 
-        self.layers_qed = nn.Sequential(
+        '''self.layers_qed = nn.Sequential(
             nn.Linear(latent_size, 32),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            #nn.Dropout(0.2),
             nn.Linear(32, 1),
             nn.ReLU(),
-            nn.Dropout(0.2),
+            #nn.Dropout(0.2),
             nn.Sigmoid()
-        )
+        )'''
         self.layers_logp = nn.Sequential(
             nn.Linear(latent_size, 200),
             nn.ReLU(),
@@ -331,7 +331,7 @@ class Loss(nn.Module):
                 target_pen_weight_lst.append(target_pen_weight_pad_i)
             else:
                 target_pen_weight_lst.append(target_pen_weight_i)
-        #target_pen_weight_lst = [penalty_weights[self.vocab.translate(target_i)].values for target_i in target.cpu().detach().numpy()]
+        target_pen_weight_lst = [penalty_weights[self.vocab.translate(target_i)].values for target_i in target.cpu().detach().numpy()]
         #print("penalty: ", torch.Tensor(target_pen_weight_lst).view(-1))
         target_pen_weight = torch.Tensor(target_pen_weight_lst).view(-1)
         #print("target 2: ", [tgt_str_lst[i] for i in range(len(tgt_str_lst))])
@@ -353,8 +353,8 @@ class Loss(nn.Module):
         nb_tokens = int(torch.sum(mask).item())
 
         # pick the values for the label and zero out the rest with the mask
-        #output = output[range(output.size(0)), target] * target_pen_weight.cuda() * mask
-        output = output[range(output.size(0)), target] * mask
+        output = output[range(output.size(0)), target] * target_pen_weight.cuda() * mask
+        #output = output[range(output.size(0)), target] * mask
 
         #output_mse = output_mse[range(output_mse.size(0)), target] * mask
         #print("output -log:", output)
