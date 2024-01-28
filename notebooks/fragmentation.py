@@ -21,7 +21,7 @@ def check_reconstruction(frags, frag_1, frag_2, orig_smi):
         frags_test = frags.copy()
         frags_test.append(frag_1)
         frags_test.append(frag_2)
-        frag_2_re = frags_test[-1]
+        frag_2_re = MolToSmiles(MolFromSmiles(Chem.CanonSmiles(frags_test[-1])), rootedAtAtom=1)
         for i in range(len(frags_test)-1):
             frag_1_re = frags_test[-1*i-2]
             recomb = replace_last(frag_2_re, "*", frag_1_re.replace("*", "",1))
@@ -47,10 +47,10 @@ def fragment_recursive(mol_smi_orig, mol_smi, frags, counter, frag_list_len):
     try:
         counter += 1
         mol = MolFromSmiles(mol_smi)
-        mol_smi_rooted = MolToSmiles(mol, rootedAtAtom=1)
+        mol_smi_canon = Chem.CanonSmiles(MolToSmiles(mol))
         bonds = list(BRICS.FindBRICSBonds(mol))
         if len(bonds) <= frag_list_len:
-            frags.append(mol_smi_rooted)
+            frags.append(mol_smi_canon)
             print("Final Fragment: ", mol_smi, "Number of BRIC bonds: ", len(bonds))
             # return fragcomplete = True
             return True
@@ -81,12 +81,12 @@ def fragment_recursive(mol_smi_orig, mol_smi, frags, counter, frag_list_len):
                     if fragComplete:
                         return frags
                 elif len(bond_idxs) == 1:
-                    frags.append(mol_smi_rooted)
+                    frags.append(mol_smi_canon)
                     print("Final Fragment: ", mol_smi, "Number of BRIC bonds: ", len(bonds))
                     fragComplete = True
                     return frags
                 elif bond == bond_idxs[-1]:
-                    fragComplete = fragment_recursive(mol_smi_orig, mol_smi_rooted, frags, counter, frag_list_len + 1)
+                    fragComplete = fragment_recursive(mol_smi_orig, mol_smi_canon, frags, counter, frag_list_len + 1)
                     if fragComplete:
                         return frags
             elif tail_bric_bond_no <= frag_list_len:
@@ -99,19 +99,19 @@ def fragment_recursive(mol_smi_orig, mol_smi, frags, counter, frag_list_len):
                     if fragComplete:
                         return frags
                 elif len(bond_idxs) == 1:
-                    frags.append(mol_smi_rooted)
+                    frags.append(mol_smi_canon)
                     print("Final Fragment: ", mol_smi, "Number of BRIC bonds: ", len(bonds))
                     fragComplete = True
                     return frags
                 elif bond == bond_idxs[-1]:
-                    fragComplete = fragment_recursive(mol_smi_orig, mol_smi_rooted, frags, counter, frag_list_len + 1)
+                    fragComplete = fragment_recursive(mol_smi_orig, mol_smi_canon, frags, counter, frag_list_len + 1)
                     if fragComplete:
                         return frags              
     except Exception:
         pass
 
 #smiles = Chem.CanonSmiles('Oc1cccc(C(C(=O)NC2CCCC2)N(C(=O)c2ccco2)c2ccccc2F)c1OC')
-smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O') # fragment demonstration in the thesis
+#smiles = Chem.CanonSmiles('CCCN(CCc1cccc(-c2ccccc2)c1)C(=O)C1OC(C(=O)O)=CC(N)C1NC(C)=O') # fragment demonstration in the thesis
 #smiles = Chem.CanonSmiles('CCC(CC)N1CCN(C(CN2CCN(CCCCc3c(OC)ccc4ccccc34)CC2)c2ccc(F)cc2)CC1')
 #smiles = Chem.CanonSmiles('CCOC(=O)CCCSc1nc(O)c2c(C)c(C)sc2n1')
 #smiles = Chem.CanonSmiles('Cc1nc(Oc2ccc(NS(C)(=O)=O)cc2Cl)ccc1CN1CCC(N(C(=O)Nc2ccc(C(N)=O)nc2)c2cccc(F)c2)CC1')
