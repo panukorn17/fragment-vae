@@ -118,3 +118,4 @@ azure_config.txt
 # exclude everything
 DATA/*
 RUNS/*
+notbooks/test_git_ignore/*
