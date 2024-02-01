@@ -159,8 +159,7 @@ def train_embeddings(config, data):
         for inf in tqdm(infreq):
             word = i2w[inf]
             #i2w_infreq[inf] = f"cluster{w2f[word]}_{word.count('*')}"
-            i2w_infreq[inf] = df_fragment_statistics_unique_infreq.loc[
-                df_fragment_statistics_unique_infreq['Fragment'] == word, 'cluster'].values[0]
+            i2w_infreq[inf] = df_fragment_statistics_unique_infreq.loc[df_fragment_statistics_unique_infreq['Fragment'] == word, 'cluster'].values[0]
 
         w2w_infreq = {i2w[k]: v for (k, v) in i2w_infreq.items()}
         c2w_infreq = defaultdict(list)
