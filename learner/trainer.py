@@ -264,7 +264,7 @@ class Trainer:
         ##beta[-10:] = list(np.zeros(10))
         #beta = beta[0:num_epochs]
         #beta = [0, 0, 0, 0, 0, 0.002, 0.004, 0.006, 0.008, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
-        beta = [0, 0.002, 0.1, 0.2, 0.4, 0.6, 0.8, 1, 1, 1]
+        beta = [0, 0.002, 0.1, 0.2, 0.4]
         # to train the benchmark model uncomment below
         #beta = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         print('beta:', beta)
