@@ -192,11 +192,11 @@ class Frag2Mol(nn.Module):
         #print(inputs)
         vec_frag_arr = torch.zeros(100)
         for idx2, (tgt_i) in enumerate(inputs):
-            vec_frag_sum = torch.sum(self.embedder(tgt_i[tgt_i > 2]), 0)
+            vec_frag = self.embedder(tgt_i)
             if idx2 == 0:
-                vec_frag_arr = vec_frag_sum
+                vec_frag_arr = vec_frag
             else:
-                vec_frag_arr = torch.vstack((vec_frag_arr, vec_frag_sum))
+                vec_frag_arr = torch.vstack((vec_frag_arr, vec_frag))
         embeddings = self.embedder(inputs)
         #print(vec_frag_arr)
         #print(vec_frag_arr.size())
