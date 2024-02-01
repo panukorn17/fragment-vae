@@ -34,7 +34,7 @@ class Encoder(nn.Module):
             in_features=self.embed_size * self.hidden_layers,
             out_features=self.latent_size)
 
-    def forward(self, vec_frag_arr, embeddings, state, lengths):
+    def forward(self, vec_frag_arr, embeddings, lengths):
         batch_size = vec_frag_arr.size(0)
         #state = self.init_state(dim=batch_size)
         #packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
@@ -204,7 +204,7 @@ class Frag2Mol(nn.Module):
         #vec_frag_sum = np.sum(embeddings, 0)
         #print(vec_frag_sum)
         #print(vec_frag_sum.shape())
-        z, mu, sigma = self.encoder(vec_frag_arr, embeddings, state, lengths)
+        z, mu, sigma = self.encoder(vec_frag_arr, embeddings, lengths)
         ### Add Property Predictor
         #mu_norm = F.normalize(mu)
         #pred_1 = self.mlp(Variable(mu_norm[0, :, :]))
