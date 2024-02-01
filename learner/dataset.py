@@ -43,7 +43,6 @@ class FragmentDataset(Dataset):
         self.config = config
 
         data = load_dataset(config, kind='train')
-        # data = data[data.n_fragments>3]
         self.data = data.reset_index(drop=True)
         self.size = self.data.shape[0]
 
@@ -52,7 +51,7 @@ class FragmentDataset(Dataset):
     def __getitem__(self, index):
         """Returns one data pair (source and target)."""
         seq = self.data.fragments[index].split(" ")
-        #print(seq)
+        print(seq)
         ### Teddy code
         #print(self.data.fragments[index])
         ###
@@ -79,7 +78,7 @@ class FragmentDataset(Dataset):
         loader = DataLoader(dataset=self,
                             collate_fn=collator,
                             batch_size=self.config.get('batch_size'),
-                            num_workers=24,
+                            num_workers=8,
                             shuffle=True,
                             pin_memory=False)
         end = time.time() - start
