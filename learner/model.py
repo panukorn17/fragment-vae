@@ -27,35 +27,14 @@ class Encoder(nn.Module):
             batch_first=True)
 
         self.rnn2mean = nn.Linear(
-            in_features=self.embed_size,
+            in_features=self.embed_size * self.hidden_layers,
             out_features=self.latent_size)
-        #nn.Sequential(
-        #    nn.Linear(self.embed_size, 64),
-        #    nn.ReLU(),
-        #    nn.Linear(64, self.latent_size)
-        #)
-        #    # nn.Dropout(0.2),
-        #    nn.ReLU(),
-        #    # nn.Dropout(0.2),
-        #    nn.Linear(500, self.latent_size)
-        #    # nn.Sigmoid()
-        #)
-
 
         self.rnn2logv =  nn.Linear(
-            in_features=self.embed_size,
+            in_features=self.embed_size * self.hidden_layers,
             out_features=self.latent_size)
-        #nn.Sequential(
-        #    nn.Linear(self.embed_size, 64),
-        #    nn.ReLU(),
-        #    nn.Linear(64, self.latent_size)
-        #)
-        # nn.Linear(
-        #    in_features=self.embed_size,
-        #    out_features=self.latent_size)
 
-
-    def forward(self, vec_frag_arr):
+    def forward(self, vec_frag_arr, embeddings, state, lengths):
         batch_size = vec_frag_arr.size(0)
         #state = self.init_state(dim=batch_size)
         #packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=False)
@@ -225,7 +204,7 @@ class Frag2Mol(nn.Module):
         #vec_frag_sum = np.sum(embeddings, 0)
         #print(vec_frag_sum)
         #print(vec_frag_sum.shape())
-        z, mu, sigma = self.encoder(vec_frag_arr)
+        z, mu, sigma = self.encoder(vec_frag_arr, embeddings, state, lengths)
         ### Add Property Predictor
         #mu_norm = F.normalize(mu)
         #pred_1 = self.mlp(Variable(mu_norm[0, :, :]))
@@ -319,7 +298,7 @@ class Loss(nn.Module):
         #print("Original translated Target Size:", target.size())
         #print("Original translated Target Sample:", target)
         #print("Original Target Sample:", tgt_str_lst)
-        target_str_lst = [self.vocab.translate(target_i) for target_i in target.cpu().detach().numpy()]
+        target_str_lst_check = [self.vocab.translate(target_i) for target_i in target.cpu().detach().numpy()]
         #print("target: ", target_str_lst)
         #print([[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
         '''target_pen_weight_lst = []
