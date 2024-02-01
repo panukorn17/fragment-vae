@@ -194,7 +194,7 @@ class Frag2Mol(nn.Module):
         for idx2, (tgt_i) in enumerate(inputs):
             vec_frag = self.embedder(tgt_i)
             if idx2 == 0:
-                vec_frag_arr = vec_frag
+                vec_frag_arr = [vec_frag]
             else:
                 vec_frag_arr = torch.vstack((vec_frag_arr, [vec_frag]))
         embeddings = self.embedder(inputs)
