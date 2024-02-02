@@ -33,6 +33,18 @@ class Encoder(nn.Module):
         self.rnn2logv =  nn.Linear(
             in_features=self.embed_size * self.hidden_layers,
             out_features=self.latent_size)
+        
+        # Apply custom weight initialization
+        self.rnn.apply(self.init_gru_weights)
+
+    def init_gru_weights(self, m):
+        stdv = 1.0 / math.sqrt(m.hidden_size)
+        if isinstance(m, nn.GRU):
+            for name, param in m.named_parameters():
+                if 'weight' in name:
+                    nn.init.uniform_(param.data, 1 - stdv, 1 + stdv)
+                elif 'bias' in name:
+                    nn.init.constant_(param.data, 0)
 
     def forward(self, inputs, embeddings, lengths):
         batch_size = inputs.size(0)
