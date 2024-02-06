@@ -19,15 +19,17 @@ class Encoder(nn.Module):
         self.latent_size = latent_size
         self.use_gpu = use_gpu
 
-        self.rnn = nn.LSTM(
+        self.rnn = nn.GRU(
             input_size=self.embed_size,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_layers,
             dropout=dropout,
-            batch_first=True)
+            batch_first=True,
+            bidirectional=True)
 
-        self.rnn2mean = nn.Linear(hidden_size, latent_size)  
-        self.rnn2logv = nn.Linear(hidden_size, latent_size)
+        self.rnn2mean = nn.Linear(hidden_size * 2, latent_size)  # Adjust for bidirectional output
+        self.rnn2logv = nn.Linear(hidden_size * 2, latent_size)  # Adjust for bidirectional output
+
         
         # Apply custom weight initialization
         # self.rnn.apply(self.init_gru_weights)
@@ -74,7 +76,7 @@ class Decoder(nn.Module):
         self.output_size = output_size
         self.dropout = dropout
 
-        self.rnn = nn.LSTM(
+        self.rnn = nn.GRU(
             input_size=self.embed_size,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_layers,
