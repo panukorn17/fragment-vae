@@ -140,7 +140,7 @@ class Trainer:
                 src = src.cuda()
                 tgt = tgt.cuda()
             output, mu, sigma, z = self.model(src, lengths)
-            loss, CE_loss, KL_loss = self.criterion(output, tgt, mu, sigma, epoch, tgt_str_lst, penalty_weights, beta)
+            loss, CE_loss, KL_loss = self.criterion(output, tgt, mu, sigma, epoch, penalty_weights, beta)
             loss.backward()
             clip_grad_norm_(self.model.parameters(),
                             self.config.get('clip_norm'))
