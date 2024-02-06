@@ -26,13 +26,8 @@ class Encoder(nn.Module):
             dropout=dropout,
             batch_first=True)
 
-        self.rnn2mean = nn.Linear(
-            in_features=self.embed_size * self.hidden_layers,
-            out_features=self.latent_size)
-
-        self.rnn2logv =  nn.Linear(
-            in_features=self.embed_size * self.hidden_layers,
-            out_features=self.latent_size)
+        self.rnn2mean = nn.Linear(hidden_size, latent_size)  
+        self.rnn2logv = nn.Linear(hidden_size, latent_size)
         
         # Apply custom weight initialization
         # self.rnn.apply(self.init_gru_weights)
@@ -50,10 +45,11 @@ class Encoder(nn.Module):
         batch_size = inputs.size(0)
         state = self.init_state(dim=batch_size)
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True)
-        _, state = self.rnn(packed, state)
-        state = state.view(batch_size, self.hidden_size * self.hidden_layers)
-        mean = self.rnn2mean(state)
-        logv = self.rnn2logv(state)
+        packed_output, _ = self.rnn(packed, state)
+        output, output_lengths = pad_packed_sequence(packed_output, batch_first=True)
+        pooled, _ = torch.max(output, dim=1)
+        mean = self.rnn2mean(pooled)
+        logv = self.rnn2logv(pooled)
         std = torch.exp(0.5 * logv)
         z = self.sample_normal(dim=batch_size)
         latent_sample = z * std + mean
