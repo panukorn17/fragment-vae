@@ -119,3 +119,14 @@ azure_config.txt
 DATA/*
 RUNS/*
 notbooks/test_git_ignore/*
+ei_runs/ei_0.zip
+ei_runs/ei_10.zip
+ei_runs/ei_20.zip
+ei_runs/ei_30.zip
+ei_runs/ei_40.zip
+ei_runs/ei_50.zip
+ei_runs/ei_60.zip
+ei_runs/ei_70.zip
+ei_runs/ei_80.zip
+ei_runs/ei_90.zip
+test_run.py
