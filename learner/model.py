@@ -171,7 +171,7 @@ class Loss(nn.Module):
     def forward(self, output, target, mu, sigma, epoch, penalty_weights, beta):
         output = F.log_softmax(output, dim=1)
 
-        # apply penalty weights
+        """# apply penalty weights
         target_pen_weight_lst = []
         for target_i in target.cpu().detach().numpy():
             target_pen_weight_i = penalty_weights[self.vocab.translate(target_i)].values
@@ -180,6 +180,8 @@ class Loss(nn.Module):
                 target_pen_weight_i = np.pad(target_pen_weight_i, (0, pad_len), 'constant')
             target_pen_weight_lst.append(target_pen_weight_i)
         target_pen_weight = torch.Tensor(target_pen_weight_lst).view(-1)
+        """
+
         target = target.view(-1)
         output = output.view(-1, output.size(2))
 
@@ -190,8 +192,8 @@ class Loss(nn.Module):
         nb_tokens = int(torch.sum(mask).item())
 
         # pick the values for the label and zero out the rest with the mask
-        output = output[range(output.size(0)), target] * target_pen_weight.cuda() * mask
-        #output = output[range(output.size(0)), target] * mask
+        #output = output[range(output.size(0)), target] * target_pen_weight.cuda() * mask
+        output = output[range(output.size(0)), target] * mask
 
         # compute cross entropy loss which ignores all <PAD> tokens
         CE_loss = -torch.sum(output) / nb_tokens
