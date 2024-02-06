@@ -72,12 +72,9 @@ def get_scheduler(config, optimizer):
                   gamma=config.get('sched_gamma'))
 
 
-def dump(config, losses, CE_loss, KL_loss, pred_sas_loss, pred_logP_loss, beta_list, scores):
-    #def dump(config, losses, CE_loss, KL_loss, pred_logP_loss, beta_list, scores):
-    df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, pred_sas_loss, pred_logP_loss, beta_list)),
-                      columns=["Total loss", "CE loss", "KL loss", "pred sas loss", "pred logP loss", "beta"])
-    #df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, pred_logP_loss, beta_list)),
-    #                  columns=["Total loss", "CE loss", "KL loss", "pred logP loss", "beta"])
+def dump(config, losses, CE_loss, KL_loss, beta_list, scores):
+    df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, beta_list)),
+                      columns=["Total loss", "CE loss", "KL loss", "beta"])
     filename = config.path('performance') / "loss.csv"
     df.to_csv(filename)
 
@@ -110,7 +107,6 @@ class Trainer:
 
         self.model = Frag2Mol(config, vocab)
         self.optimizer = get_optimizer(config, self.model)
-        #torch.optim.Adam(self.model.parameters(), lr=0.0001)
         self.scheduler = get_scheduler(config, self.optimizer)
         self.criterion = Loss(config, vocab, pad=vocab.PAD)
 
@@ -120,10 +116,7 @@ class Trainer:
         self.losses = []
         self.CE_loss = []
         self.KL_loss = []
-        self.pred_logP_loss = []
-        self.pred_sas_loss = []
         self.beta_list = []
-        self.mutual_information = []
         self.best_loss = float('inf')
         self.scores = []
         self.best_score = - float('inf')
@@ -136,80 +129,32 @@ class Trainer:
         epoch_loss = 0
         epoch_CE_loss = 0
         epoch_KL_loss = 0
-        epoch_pred_sas_loss = 0
-        epoch_pred_logP_loss = 0
 
         if epoch > 0 and self.config.get('use_scheduler'):
             self.scheduler.step()
-        #for idx, (src, tgt, lengths) in enumerate(loader):
-        ### Teddy Code
-        total_mutual_info = 0
         for idx, (src, tgt, lengths, data_index, tgt_str) in enumerate(loader):
-            ###
             self.optimizer.zero_grad()
-            #tgt_str_lst = list(tgt_str)
-            #print(tgt_str_lst)
-            #print([[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
             tgt_str_lst = [self.vocab.translate(target_i) for target_i in tgt.cpu().detach().numpy()]
-            target_str_ls_2 = [" ".join(self.vocab.translate(target_i)) for target_i in tgt.cpu().detach().numpy()]
-            src_str_ls_2 = [self.vocab.translate(target_i) for target_i in src.cpu().detach().numpy()]
-            #print("target string list src", tgt_str_lst)
-            #print("target string list tgt", target_str_ls_2)
-            #print("lengths:", lengths)
             src, tgt = Variable(src), Variable(tgt)
             if self.config.get('use_gpu'):
                 src = src.cuda()
                 tgt = tgt.cuda()
-
-            output, mu, sigma, z, pred_logp, pred_sas = self.model(src, lengths)
-            #output, mu, sigma, z, pred_logp = self.model(src, lengths)
-            #mutual_info = self.model.calc_mi(src, lengths)
-            #total_mutual_info += mutual_info * src.size(0)
-            #print("mu:", mu)
-            #print("mu size:", mu.size())
-            #print(output.size())
-            ### Insert Label
-            #print(data_index)
-            molecules = dataset.data.iloc[list(data_index)]
-            data_index_correct = [molecules[molecules['fragments'] == target_str_ls_2_i].index.values[0] for target_str_ls_2_i in target_str_ls_2]
-            molecules_correct = dataset.data.iloc[data_index_correct]
-            #print("molecules: ", molecules_correct)
-            #rint("target string list", tgt_str_lst)
-            #labels_qed = torch.tensor(molecules_correct.qed.values)
-            labels_logp = torch.tensor(molecules_correct.logP.values)
-            labels_sas = torch.tensor(molecules_correct.SAS.values)
-            #print("labels: ", labels)
-            loss, CE_loss, KL_loss, pred_sas_loss, pred_logp_loss = self.criterion(output, tgt, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, tgt_str_lst, penalty_weights, beta)
-            #loss, CE_loss, KL_loss, pred_logp_loss = self.criterion(output, tgt, mu, sigma, pred_logp, labels_logp, labels_sas, epoch, tgt_str_lst, penalty_weights, beta)
-            #pred_loss.backward()
+            output, mu, sigma, z = self.model(src, lengths)
+            loss, CE_loss, KL_loss = self.criterion(output, tgt, mu, sigma, epoch, tgt_str_lst, penalty_weights, beta)
             loss.backward()
             clip_grad_norm_(self.model.parameters(),
                             self.config.get('clip_norm'))
-
             epoch_loss += loss.item()
             epoch_CE_loss += CE_loss.item()
             epoch_KL_loss += KL_loss.item()
-            epoch_pred_sas_loss += pred_sas_loss.item()
-            epoch_pred_logP_loss += pred_logp_loss.item()
-            #epoch_loss += pred_loss.item()
-
             self.optimizer.step()
-            ### Teddy Code
             if idx == 0 or idx % 1000 == 0:
                 print("Epoch: ", epoch, "beta: ", beta[epoch])
                 print("index:", data_index)
-                print("index correct: ", data_index_correct)
-                print("batch ", idx, " loss: ", epoch_loss/(idx+1))
-                #print("pred qed", pred_qed, " labels qed: ", labels_qed, "loss qed:", F.binary_cross_entropy(pred_qed.type(torch.float64), labels_qed.cuda()))
-                print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", F.mse_loss(pred_logp.type(torch.float64), labels_logp.cuda()))
-                print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", F.mse_loss(pred_sas.type(torch.float64), labels_sas.cuda()))
-                #print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss)
                 print("target string list src", tgt_str_lst)
                 print("Penalty Weights", [[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
-                print("CE Loss ", CE_loss, " KL Loss: ", KL_loss, "Prediction Loss:", pred_logp_loss + pred_sas_loss)
-            ###
-        #return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logP_loss / len(loader)
-        return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_sas_loss / len(loader), epoch_pred_logP_loss / len(loader)
+                print("CE Loss ", CE_loss, " KL Loss: ", KL_loss)
+        return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader)
 
     def _valid_epoch(self, epoch, loader):
         use_gpu = self.config.get('use_gpu')
@@ -253,39 +198,16 @@ class Trainer:
         penalty = np.sum(np.log(fragment_counts + 1)) / np.log(fragment_counts + 1)
         penalty_weights = penalty / np.linalg.norm(penalty) * 50
         # full model is 5000
-        ###
-        total_mutual_info_list = []
-        #KL weights anneal
-        #beta = []
-        #beta.extend(list(np.zeros(10)))
-        #while len(beta) < num_epochs:
-        #    #beta.extend(list((np.arange(11)) / 10))
-        #    beta.extend(list(np.ones(10)*0.01))
-        ##beta[-10:] = list(np.zeros(10))
-        #beta = beta[0:num_epochs]
-        beta = [0, 0, 0, 0, 0, 0.002, 0.004, 0.006, 0.008, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
-        #beta = [0, 0.002, 0.1, 0.2, 0.4]
-        # to train the benchmark model uncomment below
-        #beta = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        beta = [0, 0, 0, 0.02, 0.04, 0.06, 0.08, 0.1, 0.1, 0.1]
         print('beta:', beta)
         self.beta_list = beta
 
         for epoch in range(start_epoch, start_epoch + num_epochs):
             start = time.time()
-
-            ### Teddy code
-            #mu_stack = self._train_epoch(epoch, loader)
-            #return mu_stack
-            ###
-            epoch_loss, CE_epoch_loss, KL_epoch_loss, sas_epoch_loss, logP_epoch_loss = self._train_epoch(epoch, loader, penalty_weights, beta)
-            #epoch_loss, CE_epoch_loss, KL_epoch_loss, logP_epoch_loss = self._train_epoch(epoch, loader, penalty_weights, beta)
-            #self.mutual_information.append(total_mutual_info)
+            epoch_loss, CE_epoch_loss, KL_epoch_loss = self._train_epoch(epoch, loader, penalty_weights, beta)
             self.losses.append(epoch_loss)
             self.CE_loss.append(CE_epoch_loss)
             self.KL_loss.append(KL_epoch_loss)
-            self.pred_sas_loss.append(sas_epoch_loss)
-            self.pred_logP_loss.append(logP_epoch_loss)
-            #print("epoch: "+str(epoch)+", mutual_information: "+str(total_mutual_info))
             logger.log('loss', epoch_loss, epoch)
             save_ckpt(self, epoch, filename="last.pt")
             
@@ -309,5 +231,4 @@ class Trainer:
 
             self.log_epoch(start, epoch, epoch_loss, epoch_scores)
 
-        dump(self.config, self.losses, self.CE_loss, self.KL_loss, self.pred_sas_loss, self.pred_logP_loss, self.beta_list, self.scores)
-        #dump(self.config, self.losses, self.CE_loss, self.KL_loss, self.pred_logP_loss, self.beta_list, self.scores)
+        dump(self.config, self.losses, self.CE_loss, self.KL_loss, self.beta_list, self.scores)

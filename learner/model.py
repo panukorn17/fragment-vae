@@ -35,16 +35,16 @@ class Encoder(nn.Module):
             out_features=self.latent_size)
         
         # Apply custom weight initialization
-        self.rnn.apply(self.init_gru_weights)
+        # self.rnn.apply(self.init_gru_weights)
 
-    def init_gru_weights(self, m):
+    """def init_gru_weights(self, m):
         stdv = 1.0 / math.sqrt(m.hidden_size)
         if isinstance(m, nn.GRU):
             for name, param in m.named_parameters():
                 if 'weight' in name:
                     nn.init.uniform_(param.data, 1 - stdv, 1 + stdv)
                 elif 'bias' in name:
-                    nn.init.constant_(param.data, 0)
+                    nn.init.constant_(param.data, 0)"""
 
     def forward(self, inputs, embeddings, lengths):
         batch_size = inputs.size(0)
@@ -66,65 +66,6 @@ class Encoder(nn.Module):
     def init_state(self, dim):
         state = torch.zeros((self.hidden_layers, dim, self.hidden_size))
         return Variable(state).cuda() if self.use_gpu else Variable(state)
-
-
-### MLP predictor class
-class MLP(nn.Module):
-    def __init__(self, latent_size, use_gpu):
-        super(MLP, self).__init__()
-        self.latent_size = latent_size
-        self.use_gpu = use_gpu
-        #self.relu = nn.ReLU()
-        #self.softplus = nn.Softplus()
-        #self.linear1 = nn.Linear(self.latent_size, 16)
-        #self.linear2 = nn.Linear(16, 8)
-        #self.linear3 = nn.Linear(8, 1)
-
-        self.layers_qed = nn.Sequential(
-            nn.Linear(latent_size, 32),
-            nn.ReLU(),
-            #nn.Dropout(0.2),
-            nn.Linear(32, 1),
-            nn.ReLU(),
-            #nn.Dropout(0.2),
-            nn.Sigmoid()
-        )
-
-        self.layers_logp = nn.Sequential(
-            nn.Linear(latent_size, 200),
-            nn.ReLU(),
-            #nn.Dropout(0.2),
-            nn.Linear(200, 100),
-            nn.ReLU(),
-            #nn.Dropout(0.2),
-            nn.Linear(100, 1)
-            #nn.Sigmoid()
-        )
-        self.layers_sas = nn.Sequential(
-            nn.Linear(latent_size, 200),
-            nn.ReLU(),
-            #nn.Dropout(0.2),
-            nn.Linear(200, 100),
-            nn.ReLU(),
-            #nn.Dropout(0.2),
-            nn.Linear(100, 1)
-            #nn.ReLU(),
-            #nn.Dropout(0.2),
-            #nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        #x = self.linear1(x)
-        #x = self.relu(x)
-        #x = self.linear2(x)
-        #x = self.relu(x)
-        #x = self.linear3(x)
-        #y_qed = self.layers_qed(x)
-        y_logp = self.layers_logp(x)
-        y_sas = self.layers_sas(x)
-        #return x.view(-1)
-        #return y_logp.view(-1).cuda()
-        return y_logp.view(-1).cuda(), y_sas.view(-1).cuda()
 
 class Decoder(nn.Module):
     def __init__(self, embed_size, latent_size, hidden_size,
@@ -193,15 +134,9 @@ class Frag2Mol(nn.Module):
             hidden_layers=self.hidden_layers,
             dropout=self.dropout,
             output_size=self.input_size)
-        ### MLP predictor initialise
-        self.mlp = MLP(
-            latent_size=self.latent_size,
-            use_gpu=self.use_gpu
-        )
 
     def forward(self, inputs, lengths):
         batch_size = inputs.size(0)
-        #print(inputs)
         """        
         vec_frag_arr = torch.zeros(100)
         for idx2, (tgt_i) in enumerate(inputs):
@@ -212,85 +147,31 @@ class Frag2Mol(nn.Module):
                 vec_frag_arr = torch.vstack((vec_frag_arr, vec_frag_sum))
         """
         embeddings = self.embedder(inputs)
-        #print(vec_frag_arr)
-        #print(vec_frag_arr.size())
         embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
-        #vec_frag_sum = np.sum(embeddings, 0)
-        #print(vec_frag_sum)
-        #print(vec_frag_sum.shape())
         z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
-        ### Add Property Predictor
-        #mu_norm = F.normalize(mu)
-        #pred_1 = self.mlp(Variable(mu_norm[0, :, :]))
-        #pred_2 = self.mlp(Variable(mu_norm[1, :, :]))
-        #pred = (pred_1 + pred_2)/2
-        pred_logp, pred_sas = self.mlp(Variable(mu))
-        #pred_logp = self.mlp(Variable(mu))
-        ###
         state = self.latent2rnn(z)
         state = state.view(self.hidden_layers, batch_size, self.hidden_size)
         embeddings2 = F.dropout(embeddings, p=self.dropout, training=self.training)
         output, state = self.decoder(embeddings2, state, lengths)
-        #return output, mu, sigma
-        ### Teddy Code
-        #return output, mu, sigma, z, pred_logp
-        return output, mu, sigma, z, pred_logp, pred_sas
-
+        return output, mu, sigma, z
+    
     def load_embeddings(self):
         filename = f'emb_{self.embed_size}.dat'
         path = self.config.path('config') / filename
         embeddings = np.loadtxt(path, delimiter=",")
         return torch.from_numpy(embeddings).float()
 
-    def log_sum_exp(self, value, dim=None, keepdim=False):
-        """Numerically stable implementation of the operation
-        value.exp().sum(dim, keepdim).log()
-        """
-        if dim is not None:
-            m, _ = torch.max(value, dim=dim, keepdim=True)
-            value0 = value - m
-            if keepdim is False:
-                m = m.squeeze(dim)
-            return m + torch.log(torch.sum(torch.exp(value0), dim=dim, keepdim=keepdim))
-        else:
-            m = torch.max(value)
-            sum_exp = torch.sum(torch.exp(value - m))
-            return m + torch.log(sum_exp)
-
-
 class Loss(nn.Module):
     def __init__(self, config, vocab, pad):
         super().__init__()
         self.config = config
         self.pad = pad
-        ## Insert loss function
-        self.loss_fn = nn.MSELoss()
         self.vocab = vocab
 
-    def forward(self, output, target, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, tgt_str_lst,penalty_weights, beta):
-        #def forward(self, output, target, mu, sigma, pred_logp, labels_logp, labels_sas, epoch, tgt_str_lst,penalty_weights, beta):
+    def forward(self, output, target, mu, sigma, epoch, penalty_weights, beta):
         output = F.log_softmax(output, dim=1)
-        #output_mse = F.softmax(output, dim=1)
-        #print("molecules logP", labels)
-        #print("Original Output Size:", output.size())
-        #print("Original Output Sample:", output)
-        # flatten all predictions and targets
-        #print("Original translated Target Size:", target.size())
-        #print("Original translated Target Sample:", target)
-        #print("Original Target Sample:", tgt_str_lst)
-        target_str_lst_check = [self.vocab.translate(target_i) for target_i in target.cpu().detach().numpy()]
-        #print("target: ", target_str_lst)
-        #print([[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
-        '''target_pen_weight_lst = []
-        for target_i in target.cpu().detach().numpy():
-            target_pen_weight_i = penalty_weights[self.vocab.translate(target_i)].values
-            if len(target_pen_weight_i) < target.size(1):
-                pad_len = target.size(1) - len(target_pen_weight_i)
-                target_pen_weight_pad_i = np.pad(target_pen_weight_i, (0, pad_len), 'constant')
-                target_pen_weight_pad_i[len(target_pen_weight_i)] = penalty_weights.values[-1]
-                target_pen_weight_lst.append(target_pen_weight_pad_i)
-            else:
-                target_pen_weight_lst.append(target_pen_weight_i)'''
+
+        # apply penalty weights
         target_pen_weight_lst = []
         for target_i in target.cpu().detach().numpy():
             target_pen_weight_i = penalty_weights[self.vocab.translate(target_i)].values
@@ -298,23 +179,12 @@ class Loss(nn.Module):
                 pad_len = target.size(1) - len(target_pen_weight_i)
                 target_pen_weight_i = np.pad(target_pen_weight_i, (0, pad_len), 'constant')
             target_pen_weight_lst.append(target_pen_weight_i)
-        #target_pen_weight_lst = [penalty_weights[self.vocab.translate(target_i)].values for target_i in target.cpu().detach().numpy()]
-        #print("penalty: ", torch.Tensor(target_pen_weight_lst).view(-1))
         target_pen_weight = torch.Tensor(target_pen_weight_lst).view(-1)
-        #print("target 2: ", [tgt_str_lst[i] for i in range(len(tgt_str_lst))])
         target = target.view(-1)
-        #target_str_lst = [self.vocab.translate(target.cpu().detach().numpy())]
-        #print("target: ", target_str_lst)
-        #print("Flattened translated Target Size:", target.size())
-        #print("Flattened translated Target sample:", target)
         output = output.view(-1, output.size(2))
-        #output_mse = output_mse.view(-1, output_mse.size(2))
-        #print("Flattened Output Size:", output.size())
-        #print("Flattened Output sample:", output)
 
         # create a mask filtering out all tokens that ARE NOT the padding token
         mask = (target > self.pad).float()
-        #print("Padding Mask:", mask)
 
         # count how many tokens we have
         nb_tokens = int(torch.sum(mask).item())
@@ -323,36 +193,13 @@ class Loss(nn.Module):
         output = output[range(output.size(0)), target] * target_pen_weight.cuda() * mask
         #output = output[range(output.size(0)), target] * mask
 
-        #output_mse = output_mse[range(output_mse.size(0)), target] * mask
-        #print("output -log:", output)
-        #print("output probaility:", output_mse)
-        #print("target",target)
-
         # compute cross entropy loss which ignores all <PAD> tokens
         CE_loss = -torch.sum(output) / nb_tokens
-        #CE_loss = -torch.sum(output)
-
-        #try mse ***Teddy***
-        #CE_loss = F.mse_loss(output, torch.zeros(len(output)).cuda())
 
         # compute KL Divergence
         KL_loss = -0.5 * torch.sum(1 + sigma - mu.pow(2) - sigma.exp())
-        # alpha = (epoch + 1)/(self.config.get('num_epochs') + 1)
-        # return alpha * CE_loss + (1-alpha) * KL_loss
-
-        ### Compute prediction loss
-        #pred_qed_loss = F.binary_cross_entropy(pred_qed.type(torch.float64), labels_qed.cuda())
-        pred_logp_loss = F.mse_loss(pred_logp.type(torch.float64), labels_logp.cuda())
-        pred_sas_loss = F.mse_loss(pred_sas.type(torch.float64), labels_sas.cuda())
         if KL_loss > 10000000:
-            total_loss = CE_loss + pred_logp_loss + pred_sas_loss
-            #total_loss = CE_loss + pred_logp_loss
-            #total_loss = CE_loss
+            total_loss = CE_loss
         else:
-            total_loss = CE_loss + beta[epoch]*KL_loss + pred_logp_loss + pred_sas_loss
-            #total_loss = CE_loss + beta[epoch]*KL_loss + pred_logp_loss
-            #total_loss = CE_loss + pred_logp_loss + pred_sas_loss
-            #total_loss = CE_loss + pred_logp_loss
-            #total_loss = CE_loss
-        #return total_loss, CE_loss, KL_loss, pred_logp_loss
-        return total_loss, CE_loss, KL_loss, pred_sas_loss, pred_logp_loss
+            total_loss = CE_loss + beta[epoch]*KL_loss
+        return total_loss, CE_loss, KL_loss
