@@ -19,7 +19,7 @@ class Encoder(nn.Module):
         self.latent_size = latent_size
         self.use_gpu = use_gpu
 
-        self.rnn = nn.GRU(
+        self.rnn = nn.LSTM(
             input_size=self.embed_size,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_layers,
@@ -74,7 +74,7 @@ class Decoder(nn.Module):
         self.output_size = output_size
         self.dropout = dropout
 
-        self.rnn = nn.GRU(
+        self.rnn = nn.LSTM(
             input_size=self.embed_size,
             hidden_size=self.hidden_size,
             num_layers=self.hidden_layers,
