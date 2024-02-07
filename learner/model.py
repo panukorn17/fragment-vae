@@ -86,7 +86,8 @@ class Encoder(nn.Module):
         mean = self.rnn2mean(pooled)
         logv = self.rnn2logv(pooled)
         std = torch.exp(0.5 * logv)
-        z = self.sample_normal(dim=batch_size)
+        #z = self.sample_normal(dim=batch_size)
+        z = torch.randn_like(mean)
         latent_sample = z * std + mean
         # latent_sample, mean, std are all of shape (batch_size, latent_size)
         return latent_sample, mean, std
