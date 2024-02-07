@@ -53,11 +53,11 @@ class Encoder(nn.Module):
             batch_first=True)
 
         self.rnn2mean = nn.Linear(
-            in_features=self.hidden_layers,
+            in_features=self.hidden_size,
             out_features=self.latent_size)
 
         self.rnn2logv =  nn.Linear(
-            in_features=self.hidden_layers,
+            in_features=self.hidden_size,
             out_features=self.latent_size)
         
         # Apply custom weight initialization
