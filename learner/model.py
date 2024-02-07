@@ -24,12 +24,10 @@ class Encoder(nn.Module):
             hidden_size=self.hidden_size,
             num_layers=self.hidden_layers,
             dropout=dropout,
-            batch_first=True,
-            bidirectional=True)
+            batch_first=True)
 
-        self.rnn2mean = nn.Linear(hidden_size * 2, latent_size)  # Adjust for bidirectional output
-        self.rnn2logv = nn.Linear(hidden_size * 2, latent_size)  # Adjust for bidirectional output
-
+        self.rnn2mean = nn.Linear(hidden_size, latent_size)  
+        self.rnn2logv = nn.Linear(hidden_size, latent_size)
         
         # Apply custom weight initialization
         # self.rnn.apply(self.init_gru_weights)
