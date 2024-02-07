@@ -7,7 +7,33 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
+class LatentToHidden(nn.Module):
+    def __init__(self, latent_size, hidden_size, hidden_layers, dropout, use_gpu):
+        super().__init__()
+        self.latent_size = latent_size
+        self.hidden_size = hidden_size
+        self.hidden_layers = hidden_layers
+        self.dropout = dropout
+        self.use_gpu = use_gpu
 
+        self.latent2hidden = nn.Linear(
+            in_features=self.latent_size,
+            out_features=self.hidden_size * self.hidden_layers
+            )
+
+    def forward(self, z):
+        batch_size = z.size(0)
+        # z is of shape (batch_size, latent_size)
+        hidden = self.latent2hidden(z)
+        # hidden is of shape (batch_size, hidden_size * hidden_layers)
+        hidden = hidden.view(batch_size, self.hidden_layers, self.hidden_size)
+        # hidden transformed to shape (batch_size, hidden_layers, hidden_size)
+        hidden = hidden.transpose(0, 1).contiguous()
+        # hidden transformed to shape (hidden_layers, batch_size, hidden_size)
+        if self.use_gpu:
+            hidden = hidden.cuda()
+        return hidden
+    
 class Encoder(nn.Module):
     def __init__(self, input_size, embed_size,
                  hidden_size, hidden_layers, latent_size,
@@ -27,11 +53,11 @@ class Encoder(nn.Module):
             batch_first=True)
 
         self.rnn2mean = nn.Linear(
-            in_features=self.embed_size * self.hidden_layers,
+            in_features=self.hidden_layers,
             out_features=self.latent_size)
 
         self.rnn2logv =  nn.Linear(
-            in_features=self.embed_size * self.hidden_layers,
+            in_features=self.hidden_layers,
             out_features=self.latent_size)
         
         # Apply custom weight initialization
@@ -48,15 +74,21 @@ class Encoder(nn.Module):
 
     def forward(self, inputs, embeddings, lengths):
         batch_size = inputs.size(0)
-        state = self.init_state(dim=batch_size)
+        # Let GRU initialize to zeros
+        #state = self.init_state(dim=batch_size)
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True)
-        _, state = self.rnn(packed, state)
-        state = state.view(batch_size, self.hidden_size * self.hidden_layers)
-        mean = self.rnn2mean(state)
-        logv = self.rnn2logv(state)
+        packed_output, _ = self.rnn(packed)
+        # the packed_output is of shape (batch_size, seq_len, hidden_size)
+        output, _ = pad_packed_sequence(packed_output, batch_first=True)
+        # output is of shape (batch_size, seq_len, hidden_size)
+        pooled, _ = torch.max(output, dim = 1)
+        # pooled is of shape (batch_size, hidden_size)
+        mean = self.rnn2mean(pooled)
+        logv = self.rnn2logv(pooled)
         std = torch.exp(0.5 * logv)
         z = self.sample_normal(dim=batch_size)
         latent_sample = z * std + mean
+        # latent_sample, mean, std are all of shape (batch_size, latent_size)
         return latent_sample, mean, std
 
     def sample_normal(self, dim):
@@ -134,6 +166,13 @@ class Frag2Mol(nn.Module):
             hidden_layers=self.hidden_layers,
             dropout=self.dropout,
             output_size=self.input_size)
+        
+        self.latent2hidden = LatentToHidden(
+            latent_size=self.latent_size,
+            hidden_size=self.hidden_size,
+            hidden_layers=self.hidden_layers,
+            dropout=self.dropout,
+            use_gpu=self.use_gpu)
 
     def forward(self, inputs, lengths):
         batch_size = inputs.size(0)
@@ -149,8 +188,11 @@ class Frag2Mol(nn.Module):
         embeddings = self.embedder(inputs)
         embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
         z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
-        state = self.latent2rnn(z)
-        state = state.view(self.hidden_layers, batch_size, self.hidden_size)
+        # z, mu, sigma are all of shape (batch_size, latent_size)
+        state = self.latent2hidden(z)
+        # state is of shape (hidden_layers, batch_size, hidden_size)
+        #state = self.latent2rnn(z)
+        #state = state.view(self.hidden_layers, batch_size, self.hidden_size)
         embeddings2 = F.dropout(embeddings, p=self.dropout, training=self.training)
         output, state = self.decoder(embeddings2, state, lengths)
         return output, mu, sigma, z
