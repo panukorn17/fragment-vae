@@ -5,7 +5,7 @@ from collections import defaultdict
 from tqdm import tqdm
 
 from gensim.models import Word2Vec
-from sklearn.cluster import KMeans
+#from sklearn.cluster import KMeans
 from mol2vec.features import mol2alt_sentence, mol2sentence, MolSentence, DfVec, sentences2vec
 from gensim.models import word2vec
 
@@ -224,8 +224,8 @@ def train_embeddings(config, data):
     return w2i, i2w, i2w_infreq, w2w_infreq, c2w_infreq
 
 
-def cluster_embeddings(config, embeddings, infrequent):
+"""def cluster_embeddings(config, embeddings, infrequent):
     data = embeddings.take(infrequent, axis=0)
     km = KMeans(n_clusters=config.get('num_clusters'), n_jobs=-1).fit(data)
     labels = km.labels_.tolist()
-    return labels
+    return labels"""
