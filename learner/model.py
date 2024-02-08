@@ -178,6 +178,7 @@ class Frag2Mol(nn.Module):
             out_features=self.hidden_size)
 
         self.encoder = Encoder(
+            config=self.config,
             input_size=self.input_size,
             embed_size=self.embed_size,
             hidden_size=self.hidden_size,
