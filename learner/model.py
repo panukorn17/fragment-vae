@@ -59,24 +59,14 @@ class Encoder(nn.Module):
         self.rnn2logv =  nn.Linear(
             in_features=self.hidden_size,
             out_features=self.latent_size)
-        
-        # Apply custom weight initialization
-        # self.rnn.apply(self.init_gru_weights)
-
-    """def init_gru_weights(self, m):
-        stdv = 1.0 / math.sqrt(m.hidden_size)
-        if isinstance(m, nn.GRU):
-            for name, param in m.named_parameters():
-                if 'weight' in name:
-                    nn.init.uniform_(param.data, 1 - stdv, 1 + stdv)
-                elif 'bias' in name:
-                    nn.init.constant_(param.data, 0)"""
 
     def forward(self, inputs, embeddings, lengths):
-        batch_size = inputs.size(0)
+        #batch_size = inputs.size(0)
         # Let GRU initialize to zeros
         #state = self.init_state(dim=batch_size)
-        packed = pack_padded_sequence(embeddings, lengths, batch_first=True)
+        packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=True)
+        # packed is of shape (sum(lengths), embed_size)
+        # lengths is a list of lengths for each sequence in the batch
         packed_output, _ = self.rnn(packed)
         # the packed_output is of shape (batch_size, seq_len, hidden_size)
         output, _ = pad_packed_sequence(packed_output, batch_first=True)
