@@ -181,15 +181,19 @@ class Trainer:
                 print(f"Epoch: {epoch}, beta: {beta[epoch]:.2f}")
                 print(f"index: {data_index}")
                 if self.config.get('pred_logp'):
-                    logp_pred_str = f"pred logp: {pred_logp.flatten()}" if pred_logp is not None else "pred logp: None"
-                    logp_label_str = f"labels logp: {labels_logp.tolist():.4f}"
+                    formatted_logp = [f"{value:.4f}" for value in pred_logp.flatten()]
+                    formatted_logp_labels = [f"{value:.4f}" for value in labels_logp.tolist()]
+                    logp_pred_str = f"pred logp: {formatted_logp}" if pred_logp is not None else "pred logp: None"
+                    logp_label_str = f"labels logp: {formatted_logp_labels}"
                     logp_loss_str = f"logP Loss: {logp_loss.item():.4f}"
                     print(logp_pred_str)
                     print(logp_label_str)
                     print(logp_loss_str)
                 if self.config.get('pred_sas'):
-                    sas_pred_str = f"pred sas: {pred_sas.flatten()}" if pred_sas is not None else "pred sas: None"
-                    sas_label_str = f"labels sas: {labels_sas.tolist():.4f}"
+                    formatted_sas = [f"{value:.4f}" for value in pred_sas.flatten()]
+                    formatted_sas_labels = [f"{value:.4f}" for value in labels_sas.tolist()]
+                    sas_pred_str = f"pred sas: {formatted_sas}" if pred_sas is not None else "pred sas: None"
+                    sas_label_str = f"labels sas: {formatted_sas_labels}"
                     sas_loss_str = f"SAS Loss: {sas_loss.item():.4f}"
                     print(sas_pred_str)
                     print(sas_label_str)
