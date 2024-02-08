@@ -35,6 +35,7 @@ DEFAULTS = {
     'hidden_layers': 2,
     'dropout': 0.3,
     'latent_size': 100,
+    'pooling': None,
     # learning
     'num_epochs': 10,
     'optim_lr': 0.001,
