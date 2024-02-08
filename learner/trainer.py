@@ -140,10 +140,6 @@ class Trainer:
         epoch_loss = 0
         epoch_CE_loss = 0
         epoch_KL_loss = 0
-        if self.config.get('pred_logp'):
-            epoch_pred_logp_loss = 0
-        if self.config.get('pred_sas'):
-            epoch_pred_sas_loss = 0
         if epoch > 0 and self.config.get('use_scheduler'):
             self.scheduler.step()
         for idx, (src, tgt, lengths, data_index, tgt_str) in enumerate(loader):
