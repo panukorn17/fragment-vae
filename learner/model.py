@@ -302,6 +302,8 @@ class Loss(nn.Module):
         self.config = config
         self.pad = pad
         self.vocab = vocab
+        self.logp_loss = None
+        self.sas_loss = None
 
     def forward(self, output, target, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, penalty_weights, beta):
         output = F.log_softmax(output, dim=1)
@@ -338,21 +340,21 @@ class Loss(nn.Module):
 
         if self.config.get('pred_logp'):
             # compute logp loss
-            logp_loss = F.mse_loss(pred_logp, labels_logp)
+            self.logp_loss = F.mse_loss(pred_logp, labels_logp)
 
         if self.config.get('pred_sas'):
             # compute sas loss
-            sas_loss = F.mse_loss(pred_sas, labels_sas)
+            self.sas_loss = F.mse_loss(pred_sas, labels_sas)
         if KL_loss > 10000000:
             total_loss = CE_loss
             if self.config.get('pred_logp'):
-                total_loss += logp_loss
+                total_loss += self.logp_loss
             if self.config.get('pred_sas'):
-                total_loss += sas_loss
+                total_loss += self.sas_loss
         else:
             total_loss = CE_loss + beta[epoch]*KL_loss
             if self.config.get('pred_logp'):
-                total_loss += logp_loss
+                total_loss += self.logp_loss
             if self.config.get('pred_sas'):
-                total_loss += sas_loss
-        return total_loss, CE_loss, KL_loss, logp_loss, sas_loss
+                total_loss += self.sas_loss
+        return total_loss, CE_loss, KL_loss, self.logp_loss, self.sas_loss
