@@ -200,11 +200,11 @@ class Frag2Mol(nn.Module):
 
     def forward(self, inputs, lengths):
         batch_size = inputs.size(0)
+        embeddings = self.embedder(inputs)
         if self.config.get('pooling') == 'sum_fingerprints':
             embeddings1 = self.sum_fingerprints(inputs, self.embed_size)
             # embeddings1 is of shape (batch_size, embed_size)
         else:
-            embeddings = self.embedder(inputs)
             # embeddings is of shape (batch_size, seq_len, embed_size)
             embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
         z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
