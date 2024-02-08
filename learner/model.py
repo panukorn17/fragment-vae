@@ -340,11 +340,11 @@ class Loss(nn.Module):
 
         if self.config.get('pred_logp'):
             # compute logp loss
-            self.logp_loss = F.mse_loss(pred_logp, labels_logp)
+            self.logp_loss = F.mse_loss(pred_logp.type(torch.float64), labels_logp)
 
         if self.config.get('pred_sas'):
             # compute sas loss
-            self.sas_loss = F.mse_loss(pred_sas, labels_sas)
+            self.sas_loss = F.mse_loss(pred_sas.type(torch.float64), labels_sas)
         if KL_loss > 10000000:
             total_loss = CE_loss
             if self.config.get('pred_logp'):
