@@ -178,18 +178,25 @@ class Trainer:
                 epoch_pred_sas_loss += sas_loss.item()
             self.optimizer.step()
             if idx == 0 or idx % 1000 == 0:
-                print("Epoch: ", epoch, "beta: ", beta[epoch])
-                print("index:", data_index)
-                if self.config.get('pred_logp') or self.config.get('pred_sas'):
-                    print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", logp_loss)
-                    print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", sas_loss)
-                #print("target string list src", tgt_str_lst)
-                #print("Penalty Weights", [[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
-                print("CE Loss ", CE_loss, " KL Loss: ", KL_loss)
-            if self.config.get('pred_logp') or self.config.get('pred_sas'):
-                return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logp_loss / len(loader), epoch_pred_sas_loss / len(loader)
-            else:
-                return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader)
+                print(f"Epoch: {epoch}, beta: {beta[epoch]:.4f}")
+                print(f"index: {data_index}")
+                if self.config.get('pred_logp'):
+                    logp_str = f"pred logp: {pred_logp.tolist()}, labels logp: {labels_logp.tolist()}, loss logp: {logp_loss.item():.4f}" if pred_logp is not None else "pred logp: None"
+                    logp_loss_str = f"{logp_loss.item():.4f}"
+                    print(logp_str)
+                    print(f"logP Loss: {logp_loss_str}")
+                if self.config.get('pred_sas'):
+                    sas_str = f"pred sas: {pred_sas.tolist()}, labels sas: {labels_sas.tolist()}, loss sas: {sas_loss}" if pred_sas is not None else "pred sas: None"
+                    sas_loss_str = f"{sas_loss.item():.4f}"
+                    print(sas_str)
+                    print(f"SAS Loss: {sas_loss_str}")
+                CE_loss_str = f"{CE_loss.item():.4f}"
+                KL_loss_str = f"{KL_loss.item():.4f}"
+                print(f"CE Loss: {CE_loss_str}, KL Loss: {KL_loss_str}")
+        if self.config.get('pred_logp') or self.config.get('pred_sas'):
+            return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logp_loss / len(loader), epoch_pred_sas_loss / len(loader)
+        else:
+            return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader)
 
     def _valid_epoch(self, epoch, loader):
         use_gpu = self.config.get('use_gpu')
