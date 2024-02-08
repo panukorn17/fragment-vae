@@ -178,18 +178,22 @@ class Trainer:
                 epoch_pred_sas_loss += sas_loss.item()
             self.optimizer.step()
             if idx == 0 or idx % 1000 == 0:
-                print(f"Epoch: {epoch}, beta: {beta[epoch]:.4f}")
+                print(f"Epoch: {epoch}, beta: {beta[epoch]:.2f}")
                 print(f"index: {data_index}")
                 if self.config.get('pred_logp'):
-                    logp_str = f"pred logp: {pred_logp.tolist()}, labels logp: {labels_logp.tolist()}, loss logp: {logp_loss.item():.4f}" if pred_logp is not None else "pred logp: None"
-                    logp_loss_str = f"{logp_loss.item():.4f}"
-                    print(logp_str)
-                    print(f"logP Loss: {logp_loss_str}")
+                    logp_pred_str = f"pred logp: {pred_logp.flatten().tolist():.2f}" if pred_logp is not None else "pred logp: None"
+                    logp_label_str = f"labels logp: {labels_logp.tolist():.2f}"
+                    logp_loss_str = f"logP Loss: {logp_loss.item():.4f}"
+                    print(logp_pred_str)
+                    print(logp_label_str)
+                    print(logp_loss_str)
                 if self.config.get('pred_sas'):
-                    sas_str = f"pred sas: {pred_sas.tolist()}, labels sas: {labels_sas.tolist()}, loss sas: {sas_loss}" if pred_sas is not None else "pred sas: None"
-                    sas_loss_str = f"{sas_loss.item():.4f}"
-                    print(sas_str)
-                    print(f"SAS Loss: {sas_loss_str}")
+                    sas_pred_str = f"pred sas: {pred_sas.flatten().tolist():.2f}" if pred_sas is not None else "pred sas: None"
+                    sas_label_str = f"labels sas: {labels_sas.tolist():.2f}"
+                    sas_loss_str = f"SAS Loss: {sas_loss.item():.4f}"
+                    print(sas_pred_str)
+                    print(sas_label_str)
+                    print(sas_loss_str)
                 CE_loss_str = f"{CE_loss.item():.4f}"
                 KL_loss_str = f"{KL_loss.item():.4f}"
                 print(f"CE Loss: {CE_loss_str}, KL Loss: {KL_loss_str}")
@@ -242,7 +246,7 @@ class Trainer:
         penalty_weights = penalty / np.linalg.norm(penalty) * 50
         # full model is 5000
         #beta = [0, 0, 0, 0, 0, 0.002, 0.006, 0.01, 0.02, 0.04, 0.08, 0.1, 0.1, 0.1, 0.1]
-        beta = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.8, 0.8]
+        beta = [0.01, 0.02, 0.04, 0.06, 0.08, 0.1, 0.1]
         print('beta:', beta)
         self.beta_list = beta
 
