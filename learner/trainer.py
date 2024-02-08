@@ -184,6 +184,9 @@ class Trainer:
             if idx == 0 or idx % 1000 == 0:
                 print("Epoch: ", epoch, "beta: ", beta[epoch])
                 print("index:", data_index)
+                if self.config.get('pred_logp') or self.config.get('pred_sas'):
+                    print("pred logp", pred_logp, " labels logp: ", labels_logp, "loss logp:", logp_loss)
+                    print("pred sas", pred_sas, " labels sas: ", labels_sas, "loss sas:", sas_loss)
                 #print("target string list src", tgt_str_lst)
                 #print("Penalty Weights", [[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
                 print("CE Loss ", CE_loss, " KL Loss: ", KL_loss)
