@@ -240,6 +240,14 @@ class Frag2Mol(nn.Module):
             hidden_layers=self.hidden_layers,
             dropout=self.dropout,
             use_gpu=self.use_gpu)
+        
+        if self.config.get('pred_logp') or self.config.get('pred_sas'):
+            self.mlp = MLP(
+                config=self.config,
+                latent_size=self.latent_size,
+                hidden_size_mlp=self.hidden_size,
+                hidden_layers_mlp=self.hidden_layers,
+                dropout=self.dropout)
 
     def forward(self, inputs, lengths):
         batch_size = inputs.size(0)
