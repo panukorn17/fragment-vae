@@ -72,9 +72,13 @@ def get_scheduler(config, optimizer):
                   gamma=config.get('sched_gamma'))
 
 
-def dump(config, losses, CE_loss, KL_loss, beta_list, scores):
+def dump(config, losses, CE_loss, KL_loss, pred_logp_loss, pred_sas_loss, beta_list, scores):
     df = pd.DataFrame(list(zip(losses, CE_loss, KL_loss, beta_list)),
                       columns=["Total loss", "CE loss", "KL loss", "beta"])
+    if config.get('pred_logp'):
+        df["logP loss"] = pred_logp_loss
+    if config.get('pred_sas'):
+        df["SAS loss"] = pred_sas_loss
     filename = config.path('performance') / "loss.csv"
     df.to_csv(filename)
 
@@ -112,7 +116,12 @@ class Trainer:
 
         if self.config.get('use_gpu'):
             self.model = self.model.cuda()
-
+        self.pred_logp_loss = None
+        self.pred_sas_loss = None
+        if self.config.get('pred_logp'):
+            self.pred_logp_loss = []
+        if self.config.get('pred_sas'):
+            self.pred_sas_loss = []
         self.losses = []
         self.CE_loss = []
         self.KL_loss = []
@@ -122,39 +131,66 @@ class Trainer:
         self.best_score = - float('inf')
 
     def _train_epoch(self, epoch, loader, penalty_weights, beta):
-        ###Teddy Code
-        dataset = FragmentDataset(self.config)
-        ###
         self.model.train()
+        dataset = FragmentDataset(self.config)
+        pred_logp = None
+        pred_sas = None
+        labels_logp = None
+        labels_sas = None
         epoch_loss = 0
         epoch_CE_loss = 0
         epoch_KL_loss = 0
-
+        if self.config.get('pred_logp'):
+            epoch_pred_logp_loss = 0
+        if self.config.get('pred_sas'):
+            epoch_pred_sas_loss = 0
         if epoch > 0 and self.config.get('use_scheduler'):
             self.scheduler.step()
         for idx, (src, tgt, lengths, data_index, tgt_str) in enumerate(loader):
             self.optimizer.zero_grad()
-            tgt_str_lst = [self.vocab.translate(target_i) for target_i in tgt.cpu().detach().numpy()]
             src, tgt = Variable(src), Variable(tgt)
             if self.config.get('use_gpu'):
                 src = src.cuda()
                 tgt = tgt.cuda()
-            output, mu, sigma, z = self.model(src, lengths)
-            loss, CE_loss, KL_loss = self.criterion(output, tgt, mu, sigma, epoch, penalty_weights, beta)
+            if self.config.get('pred_logp') or self.config.get('pred_sas'):
+                # get the target string list
+                tgt_str_lst = [self.vocab.translate(target_i) for target_i in tgt.cpu().detach().numpy()]
+                # join the target string list and separate by space to compare to data
+                tgt_str_lst_join = [" ".join(self.vocab.translate(target_i)) for target_i in tgt.cpu().detach().numpy()]
+                output, mu, sigma, z, pred_logp, pred_sas = self.model(src, lengths)
+                # get the correct index
+                molecules = dataset.data.iloc[list(data_index)]
+                data_index_correct = [molecules[molecules['fragments'] == tgt_str_lst_join_i].index.values[0] for tgt_str_lst_join_i in tgt_str_lst_join]
+                molecules_correct = dataset.data.iloc[data_index_correct]
+                labels_logp = torch.tensor(molecules_correct.logP.values)
+                labels_sas = torch.tensor(molecules_correct.SAS.values)
+                if self.config.get('use_gpu'):
+                    labels_logp = labels_logp.cuda()
+                    labels_sas = labels_sas.cuda()
+            else:
+                output, mu, sigma, z = self.model(src, lengths)
+            loss, CE_loss, KL_loss, logp_loss, sas_loss = self.criterion(output, tgt, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, penalty_weights, beta)
             loss.backward()
             clip_grad_norm_(self.model.parameters(),
                             self.config.get('clip_norm'))
             epoch_loss += loss.item()
             epoch_CE_loss += CE_loss.item()
             epoch_KL_loss += KL_loss.item()
+            if self.config.get('pred_logp'):
+                epoch_pred_logp_loss += logp_loss.item()
+            if self.config.get('pred_sas'):
+                epoch_pred_sas_loss += sas_loss.item()
             self.optimizer.step()
             if idx == 0 or idx % 1000 == 0:
                 print("Epoch: ", epoch, "beta: ", beta[epoch])
                 print("index:", data_index)
-                print("target string list src", tgt_str_lst)
-                print("Penalty Weights", [[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
+                #print("target string list src", tgt_str_lst)
+                #print("Penalty Weights", [[penalty_weights[tgt_str_lst_i].values] for tgt_str_lst_i in tgt_str_lst])
                 print("CE Loss ", CE_loss, " KL Loss: ", KL_loss)
-        return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader)
+            if self.config.get('pred_logp') or self.config.get('pred_sas'):
+                return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader), epoch_pred_logp_loss / len(loader), epoch_pred_sas_loss / len(loader)
+            else:
+                return epoch_loss / len(loader), epoch_CE_loss / len(loader), epoch_KL_loss / len(loader)
 
     def _valid_epoch(self, epoch, loader):
         use_gpu = self.config.get('use_gpu')
@@ -185,6 +221,7 @@ class Trainer:
         print(f'elapsed {elapsed}')
 
     def train(self, loader, start_epoch):
+        
         num_epochs = self.config.get('num_epochs')
 
         logger = TBLogger(self.config)
@@ -205,7 +242,14 @@ class Trainer:
 
         for epoch in range(start_epoch, start_epoch + num_epochs):
             start = time.time()
-            epoch_loss, CE_epoch_loss, KL_epoch_loss = self._train_epoch(epoch, loader, penalty_weights, beta)
+            if self.config.get('pred_logp') or self.config.get('pred_sas'):
+                epoch_loss, CE_epoch_loss, KL_epoch_loss, logp_loss, sas_loss = self._train_epoch(epoch, loader, penalty_weights, beta)
+                if self.config.get('pred_logp'):
+                    self.pred_logp_loss.append(logp_loss)
+                if self.config.get('pred_sas'):
+                    self.pred_sas_loss.append(sas_loss)
+            else:
+                epoch_loss, CE_epoch_loss, KL_epoch_loss = self._train_epoch(epoch, loader, penalty_weights, beta)
             self.losses.append(epoch_loss)
             self.CE_loss.append(CE_epoch_loss)
             self.KL_loss.append(KL_epoch_loss)
@@ -231,5 +275,4 @@ class Trainer:
                 logger.log('uniqueness', epoch_scores[2], epoch)
 
             self.log_epoch(start, epoch, epoch_loss, epoch_scores)
-
-        dump(self.config, self.losses, self.CE_loss, self.KL_loss, self.beta_list, self.scores)
+        dump(self.config, self.losses, self.CE_loss, self.KL_loss, self.pred_logp_loss, self.pred_sas_loss, self.beta_list, self.scores)

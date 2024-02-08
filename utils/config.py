@@ -36,6 +36,8 @@ DEFAULTS = {
     'dropout': 0.3,
     'latent_size': 100,
     'pooling': None,
+    'pred_logp': False,
+    'pred_sas': False,
     # learning
     'num_epochs': 10,
     'optim_lr': 0.001,

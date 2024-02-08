@@ -54,6 +54,14 @@ def command_parser():
         choices=['mean', 'max', 'sum_fingerprints', None],
         help='pooling method for the encoder, if any')
     subps_train.add_argument(
+        '--pred_logp', default = False,
+        action='store_true',
+        help='predict logP')
+    subps_train.add_argument(
+        '--pred_sas', default = False,
+        action='store_true',
+        help='predict SAS')
+    subps_train.add_argument(
         '--num_epochs',
         default=9, type=int,
         help='number of epochs to train')

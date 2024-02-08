@@ -153,6 +153,49 @@ class Decoder(nn.Module):
         # output is of shape (batch_size, seq_len, output_size)
         return output, state
 
+class MLP(nn.Module):
+    def __init__(self, config, latent_size, hidden_size_mlp, hidden_layers_mlp, dropout, output_size = 1):
+        super().__init__()
+        self.config = config
+        self.latent_size = latent_size
+        self.hidden_size_mlp = hidden_size_mlp
+        self.output_size = output_size
+        self.hidden_layers_mlp = hidden_layers_mlp
+        self.dropout = dropout
+
+        if self.config.get('pred_logp'):
+            self.layers_logp = self.create_layers(latent_size, hidden_size_mlp, hidden_layers_mlp, output_size)
+                
+        if self.config.get('pred_sas'):
+            self.layers_sas = self.create_layers(latent_size, hidden_size_mlp, hidden_layers_mlp, output_size)
+
+    def create_layers(self, input_size, hidden_size, hidden_layers, output_size):
+        layers = nn.ModuleList()
+        # input layer
+        layers.append(nn.Linear(input_size, hidden_size))
+        layers.append(nn.ReLU())
+        layers.append(nn.Dropout(p=self.dropout))
+        # hidden layers
+        for _ in range(hidden_layers - 1):
+            layers.append(nn.Linear(hidden_size, hidden_size))
+            layers.append(nn.ReLU())
+            layers.append(nn.Dropout(p=self.dropout))
+        # output layer
+        layers.append(nn.Linear(hidden_size, output_size))
+        return layers
+    
+    def forward_mlp(self, z, layers):
+        for layer in layers:
+            z = layer(z)
+        return z
+    
+    def forward(self, z):
+        if self.config.get('pred_logp'):
+            logp = self.forward_mlp(z, self.layers_logp)
+        if self.config.get('pred_sas'):
+            sas = self.forward_mlp(z, self.layers_sas)
+        return logp, sas
+
 class Frag2Mol(nn.Module):
     def __init__(self, config, vocab):
         super().__init__()
@@ -209,15 +252,21 @@ class Frag2Mol(nn.Module):
             embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
         z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
         # z, mu, sigma are all of shape (batch_size, latent_size)
+        if self.config.get('pred_logp') or self.config.get('pred_sas'):
+            mlp_outputs = self.mlp(z)
+            logp = mlp_outputs[0] if self.config.get('pred_logp') else None
+            sas = mlp_outputs[1] if self.config.get('pred_sas') else None
+            # logp, sas are both of shape (batch_size, 1)
         state = self.latent2hidden(z)
         # state is of shape (hidden_layers, batch_size, hidden_size)
-        #state = self.latent2rnn(z)
-        #state = state.view(self.hidden_layers, batch_size, self.hidden_size)
         embeddings2 = F.dropout(embeddings, p=self.dropout, training=self.training)
         output, state = self.decoder(embeddings2, state, lengths)
         # output is of shape (batch_size, seq_len, output_size)
         # state is of shape (hidden_layers, batch_size, hidden_size)
-        return output, mu, sigma, z
+        if self.config.get('pred_logp') or self.config.get('pred_sas'):
+            return output, mu, sigma, z, logp, sas
+        else:
+            return output, mu, sigma, z
     
     def sum_fingerprints(self, inputs, embed_size):
         vec_frag_arr = torch.zeros(embed_size)
@@ -243,6 +292,60 @@ class Loss(nn.Module):
         self.config = config
         self.pad = pad
         self.vocab = vocab
+
+    def forward(self, output, target, mu, sigma, pred_logp, labels_logp, pred_sas, labels_sas, epoch, penalty_weights, beta):
+        output = F.log_softmax(output, dim=1)
+
+        """# apply penalty weights
+        target_pen_weight_lst = []
+        for target_i in target.cpu().detach().numpy():
+            target_pen_weight_i = penalty_weights[self.vocab.translate(target_i)].values
+            if len(target_pen_weight_i) < target.size(1):
+                pad_len = target.size(1) - len(target_pen_weight_i)
+                target_pen_weight_i = np.pad(target_pen_weight_i, (0, pad_len), 'constant')
+            target_pen_weight_lst.append(target_pen_weight_i)
+        target_pen_weight = torch.Tensor(target_pen_weight_lst).view(-1)
+        """
+
+        target = target.view(-1)
+        output = output.view(-1, output.size(2))
+
+        # create a mask filtering out all tokens that ARE NOT the padding token
+        mask = (target > self.pad).float()
+
+        # count how many tokens we have
+        nb_tokens = int(torch.sum(mask).item())
+
+        # pick the values for the label and zero out the rest with the mask
+        #output = output[range(output.size(0)), target] * target_pen_weight.cuda() * mask
+        output = output[range(output.size(0)), target] * mask
+
+        # compute cross entropy loss which ignores all <PAD> tokens
+        CE_loss = -torch.sum(output) / nb_tokens
+
+        # compute KL Divergence
+        KL_loss = -0.5 * torch.sum(1 + sigma - mu.pow(2) - sigma.exp())
+
+        if self.config.get('pred_logp'):
+            # compute logp loss
+            logp_loss = F.mse_loss(pred_logp, labels_logp)
+
+        if self.config.get('pred_sas'):
+            # compute sas loss
+            sas_loss = F.mse_loss(pred_sas, labels_sas)
+        if KL_loss > 10000000:
+            total_loss = CE_loss
+            if self.config.get('pred_logp'):
+                total_loss += logp_loss
+            if self.config.get('pred_sas'):
+                total_loss += sas_loss
+        else:
+            total_loss = CE_loss + beta[epoch]*KL_loss
+            if self.config.get('pred_logp'):
+                total_loss += logp_loss
+            if self.config.get('pred_sas'):
+                total_loss += sas_loss
+        return total_loss, CE_loss, KL_loss, logp_loss, sas_loss
 
     def forward(self, output, target, mu, sigma, epoch, penalty_weights, beta):
         output = F.log_softmax(output, dim=1)
