@@ -198,7 +198,8 @@ class Trainer:
         penalty = np.sum(np.log(fragment_counts + 1)) / np.log(fragment_counts + 1)
         penalty_weights = penalty / np.linalg.norm(penalty) * 50
         # full model is 5000
-        beta = [0, 0, 0, 0, 0, 0.002, 0.006, 0.01, 0.02, 0.04, 0.08, 0.1, 0.1, 0.1, 0.1]
+        #beta = [0, 0, 0, 0, 0, 0.002, 0.006, 0.01, 0.02, 0.04, 0.08, 0.1, 0.1, 0.1, 0.1]
+        beta = [0.1, 0.2, 0.3, 0.4, 0.5, 0.8, 0.8, 0.8]
         print('beta:', beta)
         self.beta_list = beta
 

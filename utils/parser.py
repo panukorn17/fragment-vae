@@ -51,7 +51,7 @@ def command_parser():
         help="don't mask low-frequency fragments")
     subps_train.add_argument(
         '--pooling', default = None,
-        choices=['mean', 'max', None],
+        choices=['mean', 'max', 'sum_fingerprint', None],
         help='pooling method for the encoder, if any')
     subps_train.add_argument(
         '--num_epochs',

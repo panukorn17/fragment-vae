@@ -71,36 +71,33 @@ class Encoder(nn.Module):
 
     def forward(self, inputs, embeddings, lengths):
         batch_size = inputs.size(0)
-        # Let GRU initialize to zeros
-        #state = self.init_state(dim=batch_size)
-        packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=True)
-        # packed is of shape (sum(lengths), embed_size)
-        # lengths is a list of lengths for each sequence in the batch
-        packed_output, _ = self.rnn(packed)
-        # the packed_output is of shape (batch_size, seq_len, hidden_size)
-        output, state = pad_packed_sequence(packed_output, batch_first=True)
-        # output is of shape (batch_size, seq_len, hidden_size)
-        # state is of shape (hidden_layers, batch_size, hidden_size)
-        if self.config.get('pooling') == 'max':
-            pooled, _ = torch.max(output, dim = 1)
-            # pooled is of shape (batch_size, hidden_size)
-            mean = self.rnn2mean(pooled)
+        if self.config.get('pooling') == 'sum_fingerprint':
+            mean = self.rnn2mean(embeddings)
             # mean is of shape (batch_size, latent_size)
-            logv = self.rnn2logv(pooled)
-            # logv is of shape (batch_size, latent_size)
-        elif self.config.get('pooling') == 'mean':
-            pooled = torch.mean(output, dim = 1)
-            # pooled is of shape (batch_size, hidden_size)
-            mean = self.rnn2mean(pooled)
-            # mean is of shape (batch_size, latent_size)
-            logv = self.rnn2logv(pooled)
+            logv = self.rnn2logv(embeddings)
             # logv is of shape (batch_size, latent_size)
         else:
-            state = state.view(batch_size, self.hidden_size * self.hidden_layers)
-            # state is transformed to shape (batch_size, hidden_size * hidden_layers)
-            mean = self.rnn2mean(state)
+            # Let GRU initialize to zeros
+            #state = self.init_state(dim=batch_size)
+            packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=True)
+            # packed is of shape (sum(lengths), embed_size)
+            # lengths is a list of lengths for each sequence in the batch
+            packed_output, _ = self.rnn(packed)
+            # the packed_output is of shape (batch_size, seq_len, hidden_size)
+            output, state = pad_packed_sequence(packed_output, batch_first=True)
+            # output is of shape (batch_size, seq_len, hidden_size)
+            # state is of shape (hidden_layers, batch_size, hidden_size)
+            if self.config.get('pooling') == 'max':
+                pooled, _ = torch.max(output, dim=1)
+            elif self.config.get('pooling') == 'mean':
+                pooled = torch.mean(output, dim=1)
+            elif self.config.get('pooling') == 'sum':
+                pooled = torch.sum(output, dim=1)
+            else:
+                state = state.view(batch_size, self.hidden_size * self.hidden_layers)
+            mean = self.rnn2mean(pooled if self.config.get('pooling') != None else state)
             # mean is of shape (batch_size, latent_size)
-            logv = self.rnn2logv(state)
+            logv = self.rnn2logv(pooled if self.config.get('pooling') != None else state)
             # logv is of shape (batch_size, latent_size)
         std = torch.exp(0.5 * logv)
         # std is of shape (batch_size, latent_size)
@@ -204,18 +201,13 @@ class Frag2Mol(nn.Module):
 
     def forward(self, inputs, lengths):
         batch_size = inputs.size(0)
-        """        
-        vec_frag_arr = torch.zeros(100)
-        for idx2, (tgt_i) in enumerate(inputs):
-            vec_frag_sum = self.embedder(tgt_i[tgt_i > 2]), 0)
-            if idx2 == 0:
-                vec_frag_arr = vec_frag_sum
-            else:
-                vec_frag_arr = torch.vstack((vec_frag_arr, vec_frag_sum))
-        """
-        embeddings = self.embedder(inputs)
-        # embeddings is of shape (batch_size, seq_len, embed_size)
-        embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
+        if self.config.get('pooling') == 'sum_fingerprint':
+            embeddings1 = self.sum_fingerprint(inputs, self.embed_size)
+            # embeddings1 is of shape (batch_size, embed_size)
+        else:
+            embeddings = self.embedder(inputs)
+            # embeddings is of shape (batch_size, seq_len, embed_size)
+            embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
         z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
         # z, mu, sigma are all of shape (batch_size, latent_size)
         state = self.latent2hidden(z)
@@ -227,6 +219,18 @@ class Frag2Mol(nn.Module):
         # output is of shape (batch_size, seq_len, output_size)
         # state is of shape (hidden_layers, batch_size, hidden_size)
         return output, mu, sigma, z
+    
+    def sum_fingerprint(self, inputs, embed_size):
+        vec_frag_arr = torch.zeros(embed_size)
+        for idx2, (tgt_i) in enumerate(inputs):
+            vec_frag_sum = torch.sum(self.embedder(tgt_i[tgt_i > 2]), 0)
+            # vec_frag_sum is of shape (embed_size)
+            if idx2 == 0:
+                vec_frag_arr = vec_frag_sum
+            else:
+                vec_frag_arr = torch.vstack((vec_frag_arr, vec_frag_sum))
+                # vec_frag_arr is of shape (batch_size, embed_size)
+        return vec_frag_arr
     
     def load_embeddings(self):
         filename = f'emb_{self.embed_size}.dat'
