@@ -35,10 +35,11 @@ class LatentToHidden(nn.Module):
         return hidden
     
 class Encoder(nn.Module):
-    def __init__(self, input_size, embed_size,
+    def __init__(self, config, input_size, embed_size,
                  hidden_size, hidden_layers, latent_size,
                  dropout, use_gpu):
         super().__init__()
+        self.config = config
         self.embed_size = embed_size
         self.hidden_size = hidden_size
         self.hidden_layers = hidden_layers
@@ -51,17 +52,25 @@ class Encoder(nn.Module):
             num_layers=self.hidden_layers,
             dropout=dropout,
             batch_first=True)
+        if self.config.get('pooling') == 'max' or self.config.get('pooling') == 'mean':
+            self.rnn2mean = nn.Linear(
+                in_features=self.hidden_size,
+                out_features=self.latent_size)
 
-        self.rnn2mean = nn.Linear(
-            in_features=self.hidden_size,
-            out_features=self.latent_size)
+            self.rnn2logv =  nn.Linear(
+                in_features=self.hidden_size,
+                out_features=self.latent_size)
+        else:
+            self.rnn2mean = nn.Linear(
+                in_features=self.hidden_size * self.hidden_layers,
+                out_features=self.latent_size)
 
-        self.rnn2logv =  nn.Linear(
-            in_features=self.hidden_size,
-            out_features=self.latent_size)
+            self.rnn2logv =  nn.Linear(
+                in_features=self.hidden_size * self.hidden_layers,
+                out_features=self.latent_size)
 
     def forward(self, inputs, embeddings, lengths):
-        #batch_size = inputs.size(0)
+        batch_size = inputs.size(0)
         # Let GRU initialize to zeros
         #state = self.init_state(dim=batch_size)
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=True)
@@ -69,15 +78,35 @@ class Encoder(nn.Module):
         # lengths is a list of lengths for each sequence in the batch
         packed_output, _ = self.rnn(packed)
         # the packed_output is of shape (batch_size, seq_len, hidden_size)
-        output, _ = pad_packed_sequence(packed_output, batch_first=True)
+        output, state = pad_packed_sequence(packed_output, batch_first=True)
         # output is of shape (batch_size, seq_len, hidden_size)
-        pooled, _ = torch.max(output, dim = 1)
-        # pooled is of shape (batch_size, hidden_size)
-        mean = self.rnn2mean(pooled)
-        logv = self.rnn2logv(pooled)
+        # state is of shape (hidden_layers, batch_size, hidden_size)
+        if self.config.get('pooling') == 'max':
+            pooled, _ = torch.max(output, dim = 1)
+            # pooled is of shape (batch_size, hidden_size)
+            mean = self.rnn2mean(pooled)
+            # mean is of shape (batch_size, latent_size)
+            logv = self.rnn2logv(pooled)
+            # logv is of shape (batch_size, latent_size)
+        elif self.config.get('pooling') == 'mean':
+            pooled = torch.mean(output, dim = 1)
+            # pooled is of shape (batch_size, hidden_size)
+            mean = self.rnn2mean(pooled)
+            # mean is of shape (batch_size, latent_size)
+            logv = self.rnn2logv(pooled)
+            # logv is of shape (batch_size, latent_size)
+        else:
+            state = state.view(batch_size, self.hidden_size * self.hidden_layers)
+            # state is transformed to shape (batch_size, hidden_size * hidden_layers)
+            mean = self.rnn2mean(state)
+            # mean is of shape (batch_size, latent_size)
+            logv = self.rnn2logv(state)
+            # logv is of shape (batch_size, latent_size)
         std = torch.exp(0.5 * logv)
+        # std is of shape (batch_size, latent_size)
         #z = self.sample_normal(dim=batch_size)
         z = torch.randn_like(mean)
+        # z is of shape (batch_size, latent_size)
         latent_sample = z * std + mean
         # latent_sample, mean, std are all of shape (batch_size, latent_size)
         return latent_sample, mean, std
@@ -115,10 +144,17 @@ class Decoder(nn.Module):
     def forward(self, embeddings, state, lengths):
         batch_size = embeddings.size(0)
         packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=True)
+        # packed is of shape (sum(lengths), embed_size)
+        # lengths is a list of lengths for each sequence in the batch
         hidden, state = self.rnn(packed, state)
+        # hidden is of shape (batch_size, seq_len, hidden_size)
+        # state is of shape (hidden_layers, batch_size, hidden_size)
         state = state.view(self.hidden_layers, batch_size, self.hidden_size)
+        # state is transformed to shape (hidden_layers, batch_size, hidden_size)
         hidden, _ = pad_packed_sequence(hidden, batch_first=True)
+        # hidden is of shape (batch_size, seq_len, hidden_size)
         output = self.rnn2out(hidden)
+        # output is of shape (batch_size, seq_len, output_size)
         return output, state
 
 class Frag2Mol(nn.Module):
@@ -177,8 +213,9 @@ class Frag2Mol(nn.Module):
                 vec_frag_arr = torch.vstack((vec_frag_arr, vec_frag_sum))
         """
         embeddings = self.embedder(inputs)
+        # embeddings is of shape (batch_size, seq_len, embed_size)
         embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
-        z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
+        z, mu, sigma = self.encoder(self.config, inputs, embeddings1, lengths)
         # z, mu, sigma are all of shape (batch_size, latent_size)
         state = self.latent2hidden(z)
         # state is of shape (hidden_layers, batch_size, hidden_size)
@@ -186,6 +223,8 @@ class Frag2Mol(nn.Module):
         #state = state.view(self.hidden_layers, batch_size, self.hidden_size)
         embeddings2 = F.dropout(embeddings, p=self.dropout, training=self.training)
         output, state = self.decoder(embeddings2, state, lengths)
+        # output is of shape (batch_size, seq_len, output_size)
+        # state is of shape (hidden_layers, batch_size, hidden_size)
         return output, mu, sigma, z
     
     def load_embeddings(self):

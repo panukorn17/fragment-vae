@@ -50,6 +50,10 @@ def command_parser():
         action='store_false',
         help="don't mask low-frequency fragments")
     subps_train.add_argument(
+        '--pooling', default = None,
+        choices=['mean', 'max', None],
+        help='pooling method for the encoder, if any')
+    subps_train.add_argument(
         '--num_epochs',
         default=9, type=int,
         help='number of epochs to train')
