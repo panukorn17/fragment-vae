@@ -162,6 +162,8 @@ class MLP(nn.Module):
         self.output_size = output_size
         self.hidden_layers_mlp = hidden_layers_mlp
         self.dropout = dropout
+        self.logp = None
+        self.sas = None
 
         if self.config.get('pred_logp'):
             self.layers_logp = self.create_layers(latent_size, hidden_size_mlp, hidden_layers_mlp, output_size)
@@ -191,10 +193,10 @@ class MLP(nn.Module):
     
     def forward(self, z):
         if self.config.get('pred_logp'):
-            logp = self.forward_mlp(z, self.layers_logp)
+            self.logp = self.forward_mlp(z, self.layers_logp)
         if self.config.get('pred_sas'):
-            sas = self.forward_mlp(z, self.layers_sas)
-        return logp, sas
+            self.sas = self.forward_mlp(z, self.layers_sas)
+        return self.logp, self.sas
 
 class Frag2Mol(nn.Module):
     def __init__(self, config, vocab):
