@@ -71,7 +71,7 @@ class Encoder(nn.Module):
 
     def forward(self, inputs, embeddings, lengths):
         batch_size = inputs.size(0)
-        if self.config.get('pooling') == 'sum_fingerprint':
+        if self.config.get('pooling') == 'sum_fingerprints':
             mean = self.rnn2mean(embeddings)
             # mean is of shape (batch_size, latent_size)
             logv = self.rnn2logv(embeddings)
@@ -201,8 +201,8 @@ class Frag2Mol(nn.Module):
 
     def forward(self, inputs, lengths):
         batch_size = inputs.size(0)
-        if self.config.get('pooling') == 'sum_fingerprint':
-            embeddings1 = self.sum_fingerprint(inputs, self.embed_size)
+        if self.config.get('pooling') == 'sum_fingerprints':
+            embeddings1 = self.sum_fingerprints(inputs, self.embed_size)
             # embeddings1 is of shape (batch_size, embed_size)
         else:
             embeddings = self.embedder(inputs)
@@ -220,7 +220,7 @@ class Frag2Mol(nn.Module):
         # state is of shape (hidden_layers, batch_size, hidden_size)
         return output, mu, sigma, z
     
-    def sum_fingerprint(self, inputs, embed_size):
+    def sum_fingerprints(self, inputs, embed_size):
         vec_frag_arr = torch.zeros(embed_size)
         for idx2, (tgt_i) in enumerate(inputs):
             vec_frag_sum = torch.sum(self.embedder(tgt_i[tgt_i > 2]), 0)
