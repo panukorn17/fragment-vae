@@ -216,7 +216,7 @@ class Frag2Mol(nn.Module):
         embeddings = self.embedder(inputs)
         # embeddings is of shape (batch_size, seq_len, embed_size)
         embeddings1 = F.dropout(embeddings, p=self.dropout, training=self.training)
-        z, mu, sigma = self.encoder(self.config, inputs, embeddings1, lengths)
+        z, mu, sigma = self.encoder(inputs, embeddings1, lengths)
         # z, mu, sigma are all of shape (batch_size, latent_size)
         state = self.latent2hidden(z)
         # state is of shape (hidden_layers, batch_size, hidden_size)
