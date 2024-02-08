@@ -133,8 +133,8 @@ class Trainer:
     def _train_epoch(self, epoch, loader, penalty_weights, beta):
         self.model.train()
         dataset = FragmentDataset(self.config)
-        epoch_pred_logp_loss = None
-        epoch_pred_sas_loss = None
+        epoch_pred_logp_loss = 0
+        epoch_pred_sas_loss = 0
         labels_logp = None
         labels_sas = None
         epoch_loss = 0
