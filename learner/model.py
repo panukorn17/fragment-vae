@@ -53,22 +53,20 @@ class Encoder(nn.Module):
             dropout=dropout,
             batch_first=True)
         
-        if self.config.get('pooling') in ['max', 'mean', 'sum', 'sum_fingerprints']:
-            self.rnn2mean = nn.Linear(
-                in_features=self.hidden_size,
-                out_features=self.latent_size)
-
-            self.rnn2logv =  nn.Linear(
-                in_features=self.hidden_size,
-                out_features=self.latent_size)
+        if self.config.get('pooling') in ['max', 'mean', 'sum']:
+            input_size = self.hidden_size
+        elif self.config.get('pooling') == 'sum_fingerprints':
+            input_size = self.embed_size
         else:
-            self.rnn2mean = nn.Linear(
-                in_features=self.hidden_size * self.hidden_layers,
-                out_features=self.latent_size)
+            input_size = self.hidden_size * self.hidden_layers
 
-            self.rnn2logv =  nn.Linear(
-                in_features=self.hidden_size * self.hidden_layers,
-                out_features=self.latent_size)
+        self.rnn2mean = nn.Linear(
+            in_features=input_size,
+            out_features=self.latent_size)
+
+        self.rnn2logv = nn.Linear(
+            in_features=input_size,
+            out_features=self.latent_size)
 
     def forward(self, inputs, embeddings, lengths):
         batch_size = inputs.size(0)
