@@ -52,7 +52,7 @@ class Encoder(nn.Module):
             num_layers=self.hidden_layers,
             dropout=dropout,
             batch_first=True)
-        if self.config.get('pooling') == 'max' or self.config.get('pooling') == 'mean':
+        if self.config.get('pooling') == 'max' or self.config.get('pooling') == 'mean' or self.config.get('pooling') == 'sum':
             self.rnn2mean = nn.Linear(
                 in_features=self.hidden_size,
                 out_features=self.latent_size)
