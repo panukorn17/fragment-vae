@@ -82,11 +82,11 @@ class Encoder(nn.Module):
             packed = pack_padded_sequence(embeddings, lengths, batch_first=True, enforce_sorted=True)
             # packed is of shape (sum(lengths), embed_size)
             # lengths is a list of lengths for each sequence in the batch
-            packed_output, _ = self.rnn(packed)
+            packed_output, state = self.rnn(packed)
             # the packed_output is of shape (batch_size, seq_len, hidden_size)
-            output, state = pad_packed_sequence(packed_output, batch_first=True)
+            # the state is of shape (hidden_layers, batch_size, hidden_size)
+            output, _ = pad_packed_sequence(packed_output, batch_first=True)
             # output is of shape (batch_size, seq_len, hidden_size)
-            # state is of shape (hidden_layers, batch_size, hidden_size)
             if self.config.get('pooling') == 'max':
                 pooled, _ = torch.max(output, dim=1)
             elif self.config.get('pooling') == 'mean':
