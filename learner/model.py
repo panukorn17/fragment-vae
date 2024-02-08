@@ -193,9 +193,11 @@ class MLP(nn.Module):
     
     def forward(self, z):
         if self.config.get('pred_logp'):
-            self.logp = self.forward_mlp(z, self.layers_logp)
+            self.logp = self.forward_mlp(z, self.layers_logp).squeeze(-1)
+            # logp is of shape (batch_size)
         if self.config.get('pred_sas'):
-            self.sas = self.forward_mlp(z, self.layers_sas)
+            self.sas = self.forward_mlp(z, self.layers_sas).squeeze(-1)
+            # sas is of shape (batch_size)
         return self.logp, self.sas
 
 class Frag2Mol(nn.Module):
